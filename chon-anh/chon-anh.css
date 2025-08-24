@@ -1,0 +1,35 @@
+/* Page header color to match your theme */
+#game-name{ background:#b4479c; color:#fff }
+
+/* Layout */
+#match-board{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:14px }
+#left, #right{ display:grid; gap:14px }
+
+/* Cards */
+.card{ user-select:none; background:#fff; border-radius:14px; padding:16px; display:flex; align-items:center; justify-content:center; min-height:94px; box-shadow:0 3px 12px rgba(0,0,0,.12) }
+.card img{ max-width:160px; max-height:120px }
+.word-card{ font-size:24px; font-weight:700; color:#333 }
+.card button{ all:unset }
+
+/* States */
+.selectable{ cursor:pointer; transition: transform .12s ease, box-shadow .12s ease }
+.selectable:hover{ transform: translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.16) }
+.selected{ outline:4px solid #44A5DC }
+.correct{ outline:4px solid #65BF3B; background: #f6fff3 }
+.wrong{ animation: shake .2s linear 2 }
+@keyframes shake{ 25%{transform:translateX(-3px)} 50%{transform:translateX(3px)} 75%{transform:translateX(-3px)} }
+
+/* Top helpers */
+#subtext{ text-align:center; margin: 0.25rem 0 .5rem; color:#606060 }
+#feedback{ text-align:center; font-weight:700; min-height:26px }
+#feedback.ok{ color:#2ecc71 } #feedback.no{ color:#e74c3c }
+
+/* Responsive */
+@media (min-width: 860px){
+    #left, #right{ grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 859px){
+    #match-board{ grid-template-columns: 1fr; }
+    #left, #right{ grid-template-columns: 1fr 1fr; }
+    .word-card{ font-size:20px }
+}

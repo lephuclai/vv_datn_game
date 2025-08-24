@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lật thẻ – Nhớ chữ cái</title>
+
+<!-- keep your site look & layout -->
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="game.css">
+
+<style>
+  /* Minimal add-ons that won't disturb your existing look */
+  #game-name{ background:#44A5DC; color:#fff }  /* header pill only */
+
+  /* Grid */
+  #grid{
+    /* JS updates these to fit screen */
+    --cols: 4;
+    --cell: 120px;
+    --gap: 12px;
+
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--cell));
+    gap: var(--gap);
+
+    /* center the track area within the container width */
+    justify-content: center;
+
+    /* let us vertically center when we give it a min-height via JS */
+    align-content: center;
+
+    margin: 12px auto;
+    width: 100%;
+    max-width: 900px;
+    padding: 10px;
+  }
+
+  /* Square cards sized by --cell; keep your boxy look */
+  .card{
+    width: var(--cell);
+    height: var(--cell);
+    position: relative;
+    perspective: 900px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 12px;
+  }
+  .inner{
+    position:absolute; inset:0;
+    transition: transform .5s ease;
+    transform-style: preserve-3d;
+    border-radius: 12px;
+  }
+  .card.flipped .inner,
+  .card.matched .inner{ transform: rotateY(180deg); }
+
+  .face{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.12);
+  }
+  .back{
+    background: linear-gradient(135deg, #65BF3B, #44A5DC);
+    color:#fff; font-weight:800; font-size: clamp(16px,3vw,22px);
+  }
+  .front{
+    transform: rotateY(180deg);
+    background:#fff; border:1px solid #eee;
+    color:#333; font-size: clamp(24px,7vw,54px);
+    font-weight: 900;
+    overflow: hidden;
+  }
+  .front .letter-img{
+    width: 80%; height: 80%;
+    object-fit: contain; display:block;
+  }
+
+  @media (max-width:680px){ #grid{ --gap: 8px } }
+  .card:focus-visible{ outline:3px solid #FF3859; outline-offset:3px; }
+</style>
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text"><h1 id="game-name">Lật thẻ – Nhớ chữ cái</h1></div>
+  </div>
+
+  <!-- HUD stays styled by your CSS -->
+  <div id="hud" class="box" style="display:flex; gap:1rem; align-items:center; padding:8px 14px">
+    <div>🃏 Cặp đã tìm: <strong id="matches">0</strong></div>
+    <div>🔁 Lượt lật: <strong id="moves">0</strong></div>
+    <div>⏱️ Thời gian: <strong id="time">00:00</strong></div>
+    <div>🏅 Kỷ lục: <strong id="best">—</strong></div>
+  </div>
+
+  <div id="game">
+    <div id="question" class="box">
+      <div id="controls" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0">
+        <select id="size-select" class="box">
+          <option value="4x2">Bàn: 4 × 2 (rất dễ)</option>
+          <option value="4x4">Bàn: 4 × 4 (dễ)</option>
+          <option value="6x4">Bàn: 6 × 4 (vừa)</option>
+          <option value="6x6">Bàn: 6 × 6 (khó)</option>
+        </select>
+        <button id="restart-btn" class="button btn-grey">🔁 Chơi mới</button>
+      </div>
+      <div id="prompt" style="text-align:center">Lật 2 thẻ giống nhau. Khi lật, máy sẽ phát âm <b>chữ cái</b> đó. Thẻ là <b>vuông</b> và sẽ tự <b>nhỏ lại</b> để không cần cuộn.</div>
+      <div id="feedback" style="text-align:center; font-weight:700; min-height:26px; margin-top:6px"></div>
+      <div id="endbar" style="display:none; text-align:center; margin-top:10px"><button id="again-btn" class="button btn-grey">🔁 Chơi lại</button></div>
+    </div>
+
+    <div id="grid" class="box" aria-label="Bàn lật thẻ"></div>
+  </div>
+</main>
+
+<script>
+/* =============== DATA =============== */
+const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
+
+// Optional: chữ -> file audio. Nếu thiếu, dùng TTS.
+const audioMap = {
+  // "a": "static/audio/a.mp3",
+  // "ă": "static/audio/a-breve.mp3",
+};
+
+// Optional: chữ -> ảnh (PNG/SVG). Nếu thiếu, hiển thị chữ như bình thường.
+const imageMap = {
+  // "a": "static/img/letters/a.png",
+  // "ă": "static/img/letters/a-breve.png",
+};
+
+/* =============== ELEMENTS =============== */
+const gridEl     = document.getElementById("grid");
+const sizeSel    = document.getElementById("size-select");
+const restartBtn = document.getElementById("restart-btn");
+const againBtn   = document.getElementById("again-btn");
+const feedbackEl = document.getElementById("feedback");
+
+const matchesEl  = document.getElementById("matches");
+const movesEl    = document.getElementById("moves");
+const timeEl     = document.getElementById("time");
+const bestEl     = document.getElementById("best");
+
+/* =============== AUDIO =============== */
+const audioCache = {};
+function speakVI(text){
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "vi-VN"; u.rate = 0.9;
+  try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch{}
+}
+function playSoundFor(token){
+  const src = audioMap[token];
+  if(src){
+    if(!audioCache[token]){ const a=new Audio(src); a.preload="auto"; audioCache[token]=a; }
+    audioCache[token].currentTime=0;
+    audioCache[token].play().catch(()=>speakVI("chữ " + token));
+  } else {
+    speakVI("chữ " + token);
+  }
+}
+
+/* =============== HELPERS =============== */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+const UPPER_MAP = { "ă":"Ă","â":"Â","đ":"Đ","ê":"Ê","ô":"Ô","ơ":"Ơ","ư":"Ư" };
+const toUpperVI = ch => UPPER_MAP[ch] || ch.toUpperCase();
+const fmtTime = s => String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+
+/* =============== STATE =============== */
+let rows = 4, cols = 2;
+let first = null, second = null, lock = false;
+let matches = 0, moves = 0, totalPairs = 0;
+let started = false, secs = 0, timer=null;
+
+const bestKey = () => "hv_memory_best_"+cols+"x"+rows;
+function loadBest(){ const v = Number(localStorage.getItem(bestKey())||0); bestEl.textContent = v?fmtTime(v):"—"; }
+function trySetBest(){
+  const v = Number(localStorage.getItem(bestKey())||0);
+  if(!v || secs < v){ localStorage.setItem(bestKey(), String(secs)); loadBest(); }
+}
+
+/* =============== DYNAMIC SIZE & CENTER =============== */
+function sizeGridToViewport(){
+  // Read current CSS values
+  const cs   = getComputedStyle(gridEl);
+  const gap  = parseFloat(cs.gap) || 12;
+  const padX = (parseFloat(cs.paddingLeft)||0) + (parseFloat(cs.paddingRight)||0);
+  const padY = (parseFloat(cs.paddingTop)||0)  + (parseFloat(cs.paddingBottom)||0);
+
+  // Available WIDTH inside the grid wrapper
+  const contentW = gridEl.clientWidth - padX;
+  const cellByW  = (contentW - gap*(cols-1)) / cols;
+
+  // Available HEIGHT from grid top to bottom of viewport
+  const rect     = gridEl.getBoundingClientRect();
+  const viewport = window.innerHeight;
+  const availH   = Math.max(160, viewport - rect.top - 16); // leave a tiny margin
+  const contentH = availH - padY;
+  const cellByH  = (contentH - gap*(rows-1)) / rows;
+
+  // Choose the largest square that fits both width and height
+  let cell = Math.floor(Math.max(56, Math.min(cellByW, cellByH)));
+  cell = Math.min(cell, 180); // cap so it doesn’t become huge on desktop
+
+  // Apply to CSS variables
+  gridEl.style.setProperty("--cols", cols);
+  gridEl.style.setProperty("--cell", cell + "px");
+
+  // Give the grid a min-height so align-content:center can vertically center the tracks
+  const tracksH = rows*cell + (rows-1)*gap + padY;
+  gridEl.style.minHeight = Math.ceil(Math.max(tracksH, availH)) + "px";
+}
+
+/* Helper to build a front face with image fallback to text */
+function buildFrontFace(token){
+  const front = document.createElement("div");
+  front.className = "face front";
+
+  const src = imageMap[token];
+  if(src){
+    const img = new Image();
+    img.className = "letter-img";
+    img.alt = "Chữ " + token;
+    img.onload = () => {}; // success, keep image
+    img.onerror = () => { front.textContent = toUpperVI(token); }; // fallback to text
+    img.src = src;
+    front.appendChild(img);
+  }else{
+    front.textContent = toUpperVI(token);
+  }
+  return front;
+}
+
+/* =============== BUILD DECK & RENDER =============== */
+function buildDeck(){
+  const nPairs = Math.floor((rows*cols)/2);
+  totalPairs = nPairs;
+
+  const pool = shuffle(LETTERS.slice()).slice(0, nPairs);
+  const deck = shuffle(pool.flatMap((t,idx)=>[
+    { id:"c"+idx+"a", token:t },
+    { id:"c"+idx+"b", token:t }
+  ]));
+
+  gridEl.innerHTML = "";
+  deck.forEach(card=>{
+    const el = document.createElement("div");
+    el.className = "card"; el.tabIndex = 0;
+    el.dataset.token = card.token; el.dataset.id = card.id;
+    el.setAttribute("aria-label", "chữ " + card.token);
+
+    const inner = document.createElement("div");
+    inner.className = "inner";
+
+    const back = document.createElement("div");
+    back.className = "face back";
+    back.textContent = "?";
+
+    const front = buildFrontFace(card.token);
+
+    inner.appendChild(back); inner.appendChild(front);
+    el.appendChild(inner);
+
+    el.addEventListener("click", ()=> onFlip(el));
+    el.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter" || e.key===" "){ e.preventDefault(); onFlip(el); }
+    });
+
+    gridEl.appendChild(el);
+  });
+
+  sizeGridToViewport(); // fit & center after render
+}
+
+/* =============== GAME LOGIC =============== */
+function startTimerOnce(){
+  if(started) return;
+  started = true;
+  timer = setInterval(()=>{ secs++; timeEl.textContent = fmtTime(secs); }, 1000);
+}
+
+function onFlip(el){
+  if(lock) return;
+  if(el.classList.contains("flipped") || el.classList.contains("matched")) return;
+
+  startTimerOnce();
+  el.classList.add("flipped");
+  playSoundFor(el.dataset.token);
+
+  if(!first){
+    first = el;
+  }else{
+    second = el;
+    moves++; movesEl.textContent = String(moves);
+    checkPair();
+  }
+}
+
+function checkPair(){
+  const t1 = first.dataset.token, t2 = second.dataset.token;
+  if(t1 === t2){
+    first.classList.add("matched");
+    second.classList.add("matched");
+    first = second = null;
+    matches++; matchesEl.textContent = String(matches);
+    if(matches === totalPairs) finish();
+  }else{
+    lock = true;
+    setTimeout(()=>{
+      first.classList.remove("flipped");
+      second.classList.remove("flipped");
+      first = second = null;
+      lock = false;
+    }, 700);
+  }
+}
+
+function finish(){
+  clearInterval(timer);
+  feedbackEl.textContent = "🎉 Hoàn thành! Tuyệt vời!";
+  feedbackEl.className = "ok";
+  trySetBest();
+  document.getElementById("endbar").style.display = "block";
+}
+
+/* =============== RESET / INIT =============== */
+function resetGame(){
+  const [c, r] = sizeSel.value.split("x").map(Number);
+  cols = c; rows = r;
+
+  first = second = null; lock = false;
+  matches = 0; moves = 0; started = false; secs = 0;
+  clearInterval(timer); timer = null;
+
+  matchesEl.textContent = "0";
+  movesEl.textContent   = "0";
+  timeEl.textContent    = "00:00";
+  feedbackEl.textContent = ""; feedbackEl.className = "";
+  document.getElementById("endbar").style.display = "none";
+
+  loadBest();
+  buildDeck();
+}
+
+function init(){
+  sizeSel.value = "4x2"; // default the simple level you asked for
+  resetGame();
+
+  sizeSel.addEventListener("change", resetGame);
+  restartBtn.addEventListener("click", resetGame);
+  againBtn.addEventListener("click", resetGame);
+
+  // Prime audio on first interaction (mobile autoplay policies)
+  const prime = ()=>{ document.removeEventListener("click", prime); };
+  document.addEventListener("click", prime, { once:true });
+
+  // Keep grid centered and no-scroll on resize / orientation change
+  let raf = null;
+  const onRes = ()=>{ if(raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(sizeGridToViewport); };
+  window.addEventListener("resize", onRes);
+  window.addEventListener("orientationchange", onRes);
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

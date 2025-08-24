@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Đua xe chữ cái</title>
+
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="game.css">
+  <link rel="stylesheet" href="dua-xe.css">
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text"><h1 id="game-name">Đua xe chữ cái</h1></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="box" style="display:flex; gap:1rem; align-items:center; padding:8px 14px">
+    <div>🏆 Điểm: <strong id="score">0</strong></div>
+    <div>⭐ Liên tiếp: <strong id="streak">0</strong></div>
+    <div>🏅 Kỷ lục: <strong id="best-streak">0</strong></div>
+  </div>
+
+  <div id="game">
+    <div id="race" class="box">
+      <div class="lane">
+        <div class="finish-flag"></div>
+        <div id="car-you" class="car you" aria-label="Xe của bé", style="transform: scale(-1, 1);">🚗</div>
+      </div>
+      <div class="lane">
+        <div class="finish-flag"></div>
+        <div id="car-bot" class="car bot" aria-label="Xe bạn", style="transform: scale(-1, 1);">🚌</div>
+      </div>
+    </div>
+
+    <div id="question" class="box">
+      <h2 style="text-align:center">Bé hãy chọn đúng chữ (hoặc vần) thật nhanh để chiếc xe về đích nhé!</h2>
+
+      <div id="controls">
+        <button id="play-sound" class="button btn-grey">🔊 Nghe lại</button>
+        <select id="mode-select" class="box">
+          <option value="letters">Chế độ: Chữ cái</option>
+          <option value="vans">Chế độ: Vần</option>
+        </select>
+      </div>
+
+      <!-- TIMER UI -->
+      <div id="timer">
+        <span>⏱️ Còn: <b id="timer-text">30s</b></span>
+        <div id="timer-bar-wrap"><div id="timer-bar"></div></div>
+      </div>
+
+      <div id="prompt"></div>
+      <div id="choices"></div>
+      <div id="feedback"></div>
+
+      <div id="restart">
+        <button id="restart-btn" class="button btn-grey">🔁 Chơi lại</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="dua-xe.js"></script>
+</body>
+</html>

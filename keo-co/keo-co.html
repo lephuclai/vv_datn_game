@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kéo co – Chữ cái & Vần</title>
+
+  <!-- Reuse your project styles -->
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="game.css">
+
+  <style>
+    #game-name{ background:#b4479c; color:#fff }
+
+    #question{ text-align:center }
+    #controls{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0 }
+    #mode-select{ font-size:14px; padding:6px 10px; border-radius:8px }
+
+    #prompt{ font-size:28px; font-weight:800; margin:8px 0 0; text-align:center }
+    #choices{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px }
+    .opt{
+      min-width:120px; padding:14px 18px; border-radius:12px; font-size:22px; font-weight:700; color:#fff;
+      cursor:pointer; user-select:none; border:0; box-shadow:0 3px 10px rgba(0,0,0,.2);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .opt:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.16) }
+    .opt.c1{ background:#FF3859 } .opt.c2{ background:#44A5DC }
+    .opt.c3{ background:#FFC200; color:#603 } .opt.c4{ background:#65BF3B }
+
+    #feedback{ text-align:center; font-weight:700; min-height:26px; margin-top:6px }
+    #feedback.ok{ color:#2ecc71 } #feedback.no{ color:#e74c3c }
+
+    /* Arena */
+    /* #arena{
+      position:relative; margin:14px auto 0; max-width:1000px; height:280px;
+      border-radius:14px; box-shadow:0 3px 12px rgba(0,0,0,.12);
+      background: linear-gradient(#c2f0ff,#e6fff3 40%, #b9f3a2 40%, #a7ec8c 100%);
+      background-image: url("keo-co-background-01.png");
+      overflow:hidden;
+    } */
+
+    #arena {
+        position: relative;
+        margin: 14px auto 0;
+        max-width: 1000px;
+        height: 280px;
+        border-radius: 14px;
+        box-shadow: 0 3px 12px rgba(0,0,0,.12);
+
+        background-image: url("keo-co-background-01.png");
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: cover;   /* makes the image scale to fill */
+
+        overflow: hidden;
+    }
+
+    /* Ground line (rope baseline) */
+    /* #rope-line{
+      position:absolute; left:0; right:0; top:54%;
+      height:6px; background:#bd8b3b; box-shadow:0 2px 0 rgba(0,0,0,.15) inset;
+    } */
+    /* Center flag on rope (won’t move) */
+    #center-flag{
+      position:absolute; left:50%; top:calc(54% - 26px);
+      transform:translateX(-50%);
+      width:16px; height:52px; background:#ff5252; border-radius:0 10px 2px 2px;
+      box-shadow:0 2px 4px rgba(0,0,0,.2);
+    }
+
+    /* Boundaries */
+    .marker{
+      position:absolute; top:18px; font-weight:800; color:#606060; background:#ffffffcc;
+      padding:4px 8px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.08)
+    }
+    .marker.left{ left:10px }
+    .marker.right{ right:10px }
+
+    /* Team image wrapper that moves left/right */
+    #teams-wrap{
+      position:absolute; left:50%; top:16%;
+      transform: translateX(-50%);   /* baseline center */
+      transition: transform .35s ease; /* smooth slide each answer */
+      display:grid; place-items:center; width:80%;
+      pointer-events:none;
+    }
+    #teams-img{
+      max-width:100%; height:auto; width: 640px; /* you can change this based on your PNG */
+      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
+    }
+
+    /* Win/Lose bar */
+    #endbar{ display:none; text-align:center; margin-top:10px }
+    #endbar button{ cursor:pointer }
+
+    @media (max-width:900px){
+      #teams-img{ width: 520px }
+    }
+    @media (max-width:700px){
+      #teams-img{ width: 430px }
+      #arena{ height:250px }
+    }
+    @media (max-width:520px){
+      #teams-img{ width: 360px }
+      #arena{ height:230px }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text"><h1 id="game-name">Kéo co – Chữ cái & Vần</h1></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="box" style="display:flex; gap:1rem; align-items:center; padding:8px 14px">
+    <div>🏆 Điểm: <strong id="score">0</strong></div>
+    <div>⭐ Liên tiếp: <strong id="streak">0</strong></div>
+    <div>🏅 Kỷ lục: <strong id="best-streak">0</strong></div>
+  </div>
+
+  <div id="game">
+    <!-- ARENA -->
+    <div id="arena" class="box">
+      <div class="marker left">Đối phương</div>
+      <div class="marker right">Đội bé</div>
+
+      <!-- <div id="rope-line"></div> -->
+      <!-- <div id="center-flag"></div> -->
+
+      <div id="teams-wrap">
+        <!-- Placeholder image: replace with your PNG -->
+        <img id="teams-img" src="keo-co-01.png" alt="Tug of war">
+      </div>
+    </div>
+
+        <div id="question" class="box">
+      <h2>Bé trả lời đúng để kéo dây về phía đội mình nhé!</h2>
+      <div id="controls">
+        <button id="play-sound" class="button btn-grey">🔊 Nghe lại</button>
+        <select id="mode-select" class="box">
+          <option value="letters">Chế độ: Chữ cái</option>
+          <option value="vans">Chế độ: Vần</option>
+        </select>
+        <button id="restart-btn" class="button btn-grey">🔁 Chơi lại</button>
+      </div>
+
+      <div id="prompt"></div>
+      <div id="choices"></div>
+      <div id="feedback"></div>
+
+      <div id="endbar">
+        <button id="again-btn" class="button btn-grey">🔁 Chơi lại lượt kéo</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  /* ================= Data ================= */
+  const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
+  const VANS = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"];
+
+  // Optional: token -> audio file. Fallback to TTS.
+  const audioMap = {
+    // "ê": "static/audio/letters/e-circumflex.mp3",
+    // "anh": "static/audio/anh.mp3",
+  };
+
+  /* =============== Config =============== */
+  const STEPS_TO_WIN = 8;             // distance to the right edge (and to the left edge)
+  const MOVE_PIXELS_AT_FULL = 320;    // total shift when |pos| == STEPS_TO_WIN (auto-rescaled on resize)
+
+  /* =============== State =============== */
+  let mode = "letters";
+  let answer = "";
+  let pos = 0;                        // -STEPS_TO_WIN .. +STEPS_TO_WIN
+  let score = 0, streak = 0, bestStreak = Number(localStorage.getItem("hv_tug_best")||0);
+
+  const promptEl   = document.getElementById("prompt");
+  const choicesEl  = document.getElementById("choices");
+  const feedbackEl = document.getElementById("feedback");
+  const playBtn    = document.getElementById("play-sound");
+  const modeSel    = document.getElementById("mode-select");
+  const restartBtn = document.getElementById("restart-btn");
+  const againBtn   = document.getElementById("again-btn");
+  const endbar     = document.getElementById("endbar");
+
+  const teamsWrap  = document.getElementById("teams-wrap");
+  const arena      = document.getElementById("arena");
+
+  function updateHUD(){
+    document.getElementById("score").textContent = String(score);
+    document.getElementById("streak").textContent = String(streak);
+    document.getElementById("best-streak").textContent = String(bestStreak);
+  }
+
+  /* =============== Sound =============== */
+  const audioCache = {};
+  function speakVI(text){ const u=new SpeechSynthesisUtterance(text); u.lang="vi-VN"; u.rate=0.9; try{ speechSynthesis.cancel(); speechSynthesis.speak(u);}catch{} }
+  function playSoundFor(token){
+    const src = audioMap[token];
+    if(src){
+      if(!audioCache[token]){ const a=new Audio(src); a.preload="auto"; audioCache[token]=a; }
+      audioCache[token].currentTime=0; audioCache[token].play().catch(()=>speakVI(token));
+    } else {
+      if(mode==="letters") speakVI(`chữ ${token}`); else speakVI(token);
+    }
+  }
+
+  /* =============== Helpers =============== */
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function shuffled(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+
+  function computeMaxShiftPx(){
+    // keep team image inside arena nicely
+    const wrapWidth = arena.clientWidth;
+    // leave ~10% margin each side; clamp with MOVE_PIXELS_AT_FULL as upper bound
+    return Math.min(MOVE_PIXELS_AT_FULL, Math.max(120, (wrapWidth * 0.35)));
+  }
+
+  function updateTeamsPosition(){
+    const maxShift = computeMaxShiftPx();
+    const shift = (pos / STEPS_TO_WIN) * maxShift;
+    teamsWrap.style.transform = `translateX(calc(-50% + ${shift}px))`;
+  }
+
+  function checkFinish(){
+    if(pos >= STEPS_TO_WIN){
+      feedbackEl.textContent = "🎉 Đội bé kéo thắng!";
+      feedbackEl.className = "ok";
+      streak++; score++; if(streak>bestStreak){ bestStreak=streak; localStorage.setItem("hv_tug_best", String(bestStreak)); }
+      updateHUD(); endbar.style.display = "block"; return true;
+    }
+    if(pos <= -STEPS_TO_WIN){
+      feedbackEl.textContent = "Ôi! Bị kéo về phía đối phương rồi!";
+      feedbackEl.className = "no";
+      streak = 0; updateHUD();
+      endbar.style.display = "block"; return true;
+    }
+    return false;
+  }
+
+  /* =============== Questions =============== */
+  function newQuestion(){
+    endbar.style.display = "none";
+    feedbackEl.textContent = ""; feedbackEl.className = "";
+
+    const bank = (mode === "letters") ? LETTERS : VANS;
+    answer = pick(bank);
+
+    const opts = new Set([answer]);
+    while(opts.size < 4) opts.add(pick(bank));
+    const options = shuffled([...opts]);
+
+    choicesEl.innerHTML = "";
+    options.forEach((opt,i)=>{
+      const btn = document.createElement("button");
+      btn.className = `opt c${(i%4)+1}`;
+      btn.textContent = opt;
+      btn.onclick = () => checkAnswer(opt, btn);
+      choicesEl.appendChild(btn);
+    });
+
+    playSoundFor(answer);
+  }
+
+  function checkAnswer(opt, btn){
+    const correct = (opt === answer);
+    if(correct){
+      feedbackEl.textContent = "Đúng rồi! Kéo nào!";
+      feedbackEl.className = "ok";
+      pos = Math.min(STEPS_TO_WIN, pos + 1);
+      streak++; score++; if(streak>bestStreak){ bestStreak=streak; localStorage.setItem("hv_tug_best", String(bestStreak)); }
+      updateHUD();
+    } else {
+      feedbackEl.textContent = "Chưa đúng! Bị kéo lại!";
+      feedbackEl.className = "no";
+      pos = Math.max(-STEPS_TO_WIN, pos - 1);
+      streak = 0; updateHUD();
+      btn.style.transform = "translateY(0) scale(0.96)";
+      setTimeout(()=>btn.style.transform="", 150);
+    }
+    updateTeamsPosition();
+    if(!checkFinish()) setTimeout(newQuestion, 500);
+  }
+
+  /* =============== Init / Reset =============== */
+  function resetGame(keepMode=true){
+    pos = 0; updateTeamsPosition();
+    endbar.style.display = "none";
+    newQuestion();
+  }
+
+  function init(){
+    updateHUD();
+    playBtn.addEventListener("click", ()=> playSoundFor(answer));
+    modeSel.addEventListener("change", e=>{ mode = e.target.value; resetGame(true); });
+    restartBtn.addEventListener("click", ()=> resetGame(true));
+    againBtn.addEventListener("click", ()=> resetGame(true));
+    window.addEventListener("resize", updateTeamsPosition);
+
+    // Prime audio on first tap (mobile)
+    const prime = ()=>{ document.removeEventListener("click", prime); };
+    document.addEventListener("click", prime, { once:true });
+
+    resetGame(true);
+  }
+  window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

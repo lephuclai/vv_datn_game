@@ -1,0 +1,56 @@
+#game-name { background:#b4479c; color:#fff }
+
+/* TIMER */
+#timer {
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    margin-top:8px; font-weight:700; color:#606060;
+}
+#timer-bar-wrap {
+    width:260px; height:10px; background:#eee; border-radius:8px; overflow:hidden;
+    box-shadow: inset 0 0 3px rgba(0,0,0,.2);
+}
+#timer-bar {
+    height:100%; width:100%; background:linear-gradient(90deg,#65BF3B,#FFC200,#FF3859);
+    transition: width .25s linear;
+}
+
+/* TRACK */
+#race { position:relative; margin:14px auto 0; max-width:900px; background:#e8f4fc;
+    border-radius:14px; padding:20px 10px 30px; box-shadow:0 3px 12px rgba(0,0,0,.12) }
+.lane { position:relative; height:66px; margin:14px 10px; background:#f8fff2;
+    border:4px solid #79c16d; border-radius:14px; overflow:hidden }
+.finish-flag { position:absolute; top:0; right:0; width:46px; height:100%;
+    background:
+    linear-gradient(45deg,#000 25%,transparent 25%) 0 0/18px 18px,
+    linear-gradient(-45deg,#000 25%,transparent 25%) 0 9px/18px 18px,
+    linear-gradient(45deg,transparent 75%,#000 75%) 9px 0/18px 18px,
+    linear-gradient(-45deg,transparent 75%,#000 75%) 9px 9px/18px 18px,#fff;
+    border-left:3px solid #333; opacity:.8 }
+.car { position:absolute; top:8px; left:10px; width:52px; height:52px; border-radius:50%;
+    display:grid; place-items:center; font-size:28px; transition:left .28s ease;
+    box-shadow:0 4px 10px rgba(0,0,0,.2); background:#fff }
+.car.you{ outline:4px solid #44A5DC } .car.bot{ outline:4px solid #FF3859 }
+
+/* QUESTION/OPTIONS */
+#prompt { text-align:center; font-size:30px; font-weight:800; margin:8px 0 0 }
+#choices { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px }
+.opt { min-width:120px; padding:14px 18px; border-radius:12px; font-size:22px; font-weight:700; color:#fff;
+    cursor:pointer; user-select:none; border:0; box-shadow:0 3px 10px rgba(0,0,0,.2);
+    transition: transform .12s ease, box-shadow .12s ease }
+.opt:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.16) }
+.opt.c1{ background:#FF3859 } .opt.c2{ background:#44A5DC }
+.opt.c3{ background:#FFC200; color:#603 } .opt.c4{ background:#65BF3B }
+
+#feedback { text-align:center; font-weight:700; min-height:26px; margin-top:6px }
+#feedback.ok{ color:#2ecc71 } #feedback.no{ color:#e74c3c }
+
+#controls { display:flex; gap:10px; justify-content:center; margin-top:10px }
+#mode-select { font-size:14px; padding:6px 10px; border-radius:8px; }
+
+#restart { display:none; margin-top:10px; text-align:center }
+#restart button { cursor:pointer }
+
+@media (max-width:680px){
+    .car{ width:46px; height:46px; font-size:24px } .lane{ height:60px }
+    #prompt{ font-size:24px } .opt{ min-width:100px; font-size:18px }
+}

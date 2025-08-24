@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Học bảng chữ cái</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: linear-gradient(#a2d2ff, #cdb4db);
+      margin: 0;
+    }
+
+    .game-container {
+      background: white;
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 300px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      font-size: 18px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      background: #ffafcc;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #ff7096;
+      color: white;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h2>Nghe và chọn chữ cái</h2>
+    <button onclick="playSound()">🔊 Nghe âm thanh</button>
+    <div id="answers"></div>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    // Vietnamese alphabet (simplified, you can expand)
+    const letters = ["a", "ă", "â", "b", "c", "d", "đ", "e", "ê", "g", "h"];
+
+    let correctLetter = "";
+
+    function newQuestion() {
+      document.getElementById("message").textContent = "";
+
+      // Pick random correct letter
+      correctLetter = letters[Math.floor(Math.random() * letters.length)];
+
+      // Generate 3 wrong answers
+      let options = [correctLetter];
+      while (options.length < 4) {
+        let rand = letters[Math.floor(Math.random() * letters.length)];
+        if (!options.includes(rand)) options.push(rand);
+      }
+
+      // Shuffle answers
+      options.sort(() => Math.random() - 0.5);
+
+      // Show answers
+      const answerDiv = document.getElementById("answers");
+      answerDiv.innerHTML = "";
+      options.forEach(letter => {
+        const btn = document.createElement("button");
+        btn.textContent = letter;
+        btn.onclick = () => checkAnswer(letter);
+        answerDiv.appendChild(btn);
+      });
+    }
+
+    function playSound() {
+      // Use SpeechSynthesis API to read the letter
+      const utterance = new SpeechSynthesisUtterance(correctLetter);
+      utterance.lang = "vi-VN";
+      speechSynthesis.speak(utterance);
+    }
+
+    function checkAnswer(choice) {
+      if (choice === correctLetter) {
+        document.getElementById("message").textContent = "✅ Chính xác!";
+        setTimeout(newQuestion, 1500); // next question after 1.5s
+      } else {
+        document.getElementById("message").textContent = "❌ Sai rồi, thử lại!";
+      }
+    }
+
+    // Start the game
+    newQuestion();
+  </script>
+</body>
+</html>

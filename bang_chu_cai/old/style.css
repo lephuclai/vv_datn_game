@@ -1,0 +1,60 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+/* Background image */
+.background {
+  position: relative;
+  height: 100%;
+  background: url("https://hoctiengviet.tforart.vn/wp-content/uploads/2025/08/6109052.png") 
+              no-repeat center center / cover;
+}
+
+/* White overlay */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Game box */
+.game-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  text-align: center;
+  width: 300px;
+}
+
+button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 18px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  background: #ffafcc;
+  transition: 0.3s;
+}
+
+button:hover {
+  background: #ff7096;
+  color: white;
+}
+
+#message {
+  margin-top: 15px;
+  font-size: 20px;
+  font-weight: bold;
+}

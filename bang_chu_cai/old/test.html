@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trò chơi bảng chữ cái</title>
+  <link rel="stylesheet" href="/static/css/bang-chu-cai.css">
+  <link rel="stylesheet" href="/static/css/game.css">
+</head>
+<body>
+  <div class="background">
+    <div class="overlay"></div>
+    <div class="content">
+      <h1>🎵 Nghe và chọn chữ cái đúng</h1>
+
+      <!-- Options -->
+      <div class="options">
+        <button id="option-1" class="option"><span id="choice1"></span></button>
+        <button id="option-2" class="option"><span id="choice2"></span></button>
+        <button id="option-3" class="option"><span id="choice3"></span></button>
+        <button id="option-4" class="option"><span id="choice4"></span></button>
+      </div>
+
+      <!-- Next button -->
+      <div class="controls">
+        <button id="nextBtn" class="next-btn">👉 Câu tiếp theo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load the game logic -->
+  <script src="/static/js/fill-in-the-blank.js"></script>
+</body>
+</html>

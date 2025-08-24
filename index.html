@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chọn trò chơi – Học Tiếng Việt</title>
+
+<!-- keep your original look -->
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="game.css">
+
+<style>
+  /* Minimal, non-invasive additions */
+  #game-name{ background:#b4479c; color:#fff }
+
+  /* Controls */
+  #controls{
+    display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0
+  }
+  #search{
+    min-width: 220px; padding:8px 12px; border-radius:10px; border:1px solid #ddd; font-size:16px
+  }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
+  .chip{
+    padding:6px 10px; border-radius:999px; border:1px solid #ccc; background:#fff; cursor:pointer; font-size:14px
+  }
+  .chip.active{ background:#44A5DC; color:#fff; border-color:#44A5DC }
+
+  /* Grid of cards */
+  #grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px;
+    margin:14px auto; width:100%; max-width:1100px; padding:10px
+  }
+  .game-card{
+    display:flex; flex-direction:column; overflow:hidden; border-radius:14px;
+    background:#fff
+  }
+  .game-cover{
+    display:flex; align-items:center; justify-content:center;
+    height:120px; color:#fff; font-size:54px; font-weight:900
+  }
+  .game-body{ padding:12px 14px }
+  .game-title{ font-size:18px; font-weight:900; margin:2px 0 4px; color:#444 }
+  .game-desc{ color:#666; font-size:14px; min-height:36px }
+  .tags{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px }
+  .tag{ font-size:12px; padding:3px 8px; border-radius:999px; background:#f0f2f5; color:#555 }
+  .card-actions{ padding:12px 14px; display:flex; justify-content:space-between; align-items:center }
+  .btn-play{
+    padding:8px 14px; border-radius:10px; border:0; background:#65BF3B; color:#fff; cursor:pointer; font-weight:800
+  }
+  .btn-play:hover{ filter:brightness(0.95) }
+  .badge{ font-size:12px; background:#FF3859; color:#fff; padding:3px 8px; border-radius:999px }
+
+  /* “Last played” strip */
+  #last-wrap{ display:none; justify-content:center; }
+  #last{
+    display:flex; gap:10px; align-items:center; padding:10px 12px; margin:0 auto;
+    border-radius:12px; background:#fff; max-width:1100px
+  }
+  #last button{ padding:6px 12px; border-radius:10px; border:0; background:#44A5DC; color:#fff; cursor:pointer; font-weight:800 }
+
+  @media (max-width:680px){
+    .game-cover{ height:100px; font-size:44px }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text"><h1 id="game-name">Chọn trò chơi</h1></div>
+  </div>
+
+  <!-- Last played -->
+  <div id="last-wrap">
+    <div id="last" class="box">
+      <span>▶️ Tiếp tục: <strong id="last-title"></strong></span>
+      <button id="resume">Mở</button>
+      <button id="clear-last" class="button btn-grey">Xoá</button>
+    </div>
+  </div>
+
+  <div id="question" class="box">
+    <div id="controls">
+      <input id="search" type="search" placeholder="Tìm trò chơi (vd: chữ cái, vần, nghe)…">
+      <div class="chips">
+        <button class="chip active" data-filter="all">Tất cả</button>
+        <button class="chip" data-filter="Chữ cái">Chữ cái</button>
+        <button class="chip" data-filter="Vần">Vần</button>
+        <button class="chip" data-filter="Nghe">Nghe</button>
+        <button class="chip" data-filter="Phản xạ">Phản xạ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="grid"></div>
+</main>
+
+<script>
+/* ========= 10 games: edit titles/urls/descs as needed ========= */
+const GAMES = [
+  { id:"Penalty",title:"Sút luân lưu", url:"bong-da/bong-da.html", emoji:"⚽",
+    color:"#bd10e0", tags:["Chữ cái","Vần"], desc:"Chiến thắng trận chung kết bằng kiến thức chữ và vần." },
+    
+  { id:"me-cung",  title:"Mê Cung", url:"me-cung/me-cung.html", emoji:"🌀",
+    color:"#44A5DC", tags:["Chữ cái","Vần"], desc:"Giúp mèo đi qua mê cung để có thể tìm được cá!" },
+
+  { id:"lat-the",  title:"Lật thẻ - Nhớ chữ cái", url:"lat-the/lat-the.html", emoji:"🃏",
+    color:"#65BF3B", tags:["Chữ cái","Nghe"], desc:"Lật tìm cặp chữ giống nhau, phát âm khi lật." },
+
+  { id:"dino",     title:"Dino học chữ", url:"khung-long/khung-long.html", emoji:"🦖",
+    color:"#8e44ad", tags:["Chữ cái","Vần","Phản xạ"], desc:"Trả lời các câu hỏi khi gặp chướng ngại" },
+
+  { id:"keo-co",  title:"Kéo co", url:"keo-co/keo-co.html", emoji:"🤜🤛",
+    color:"#FFC200", tags:["Chữ cái","Nghe"], desc:"Trả lời đúng các câu hỏi để chiến thắng kéo co" },
+
+  { id:"spell",    title:"Ghép vần", url:"ghep-van/ghep-van.html", emoji:"📝",
+    color:"#ff6b6b", tags:["Vần"], desc:"Kéo thả để ghép vần thành tiếng đúng." },
+
+  { id:"dua-xe",   title:"Đua xe", url:"dua-xe/dua-xe.html", emoji:"🎧",
+    color:"#2d98da", tags:["Chữ cái","Nghe", "Vần"], desc:"Chiến thắng cuộc đua bằng kiến thức chữ và vần." },
+
+  { id:"nghe-chon-van", title:"Nghe & Chọn vần", url:"danh-van/danh-van.html", emoji:"📚",
+    color:"#20bf6b", tags:["Vần"], desc:"Nghe và chọn vần đúng." },
+
+  { id:"chon-anh",  title:"Chọn ảnh và chữ", url:"chon-anh/chon-anh.html", emoji:"💫",
+    color:"#e67e22", tags:["Chữ cái","Vần"], desc:"Chọn từ ứng với ảnh" },
+
+  { id:"nghe-chon-chu", title:"Nghe và chọn chữ cái", url:"bang-chu-cai/bang-chu-cai.html", emoji:"🅰️",
+    color:"#f39c12", tags:["Chữ cái"], desc:"Nghe và chọn chữ cái đúng." },
+];
+
+/* ========= Render grid ========= */
+const grid = document.getElementById('grid');
+const searchInput = document.getElementById('search');
+const chips = [...document.querySelectorAll('.chip')];
+
+function cardHTML(g){
+  const tags = g.tags.map(t=>`<span class="tag">${t}</span>`).join('');
+  return `
+  <article class="game-card box" data-id="${g.id}" data-tags="${g.tags.join(',')}">
+    <div class="game-cover" style="background:${g.color}">${g.emoji || "🎮"}</div>
+    <div class="game-body">
+      <div class="game-title">${g.title}</div>
+      <div class="game-desc">${g.desc||""}</div>
+      <div class="tags">${tags}</div>
+    </div>
+    <div class="card-actions">
+      <button class="btn-play" data-url="${g.url}" data-title="${g.title}">▶️ Chơi</button>
+      <span class="badge" style="display:${g.badge?'inline-block':'none'}">${g.badge||''}</span>
+    </div>
+  </article>`;
+}
+
+function render(list){
+  grid.innerHTML = list.map(cardHTML).join('');
+  // wire buttons
+  grid.querySelectorAll('.btn-play').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const url = btn.dataset.url;
+      const title = btn.dataset.title;
+      try{ localStorage.setItem('hv_last_game', JSON.stringify({ url, title })); }catch{}
+      if(url && url!=="#"){ location.href = url; }
+    });
+  });
+}
+
+/* ========= Filter & search ========= */
+let currentFilter = 'all';
+function applyFilters(){
+  const q = (searchInput.value||'').trim().toLowerCase();
+  const list = GAMES.filter(g=>{
+    const matchTag = (currentFilter==='all') || g.tags.includes(currentFilter);
+    const matchText = !q || g.title.toLowerCase().includes(q) || (g.desc||'').toLowerCase().includes(q) || g.tags.join(' ').toLowerCase().includes(q);
+    return matchTag && matchText;
+  });
+  render(list);
+}
+
+chips.forEach(ch=>{
+  ch.addEventListener('click', ()=>{
+    chips.forEach(x=>x.classList.remove('active'));
+    ch.classList.add('active');
+    currentFilter = ch.dataset.filter;
+    applyFilters();
+  });
+});
+searchInput.addEventListener('input', applyFilters);
+
+/* ========= Last played ========= */
+const lastWrap = document.getElementById('last-wrap');
+const lastTitle= document.getElementById('last-title');
+const resumeBtn = document.getElementById('resume');
+const clearBtn  = document.getElementById('clear-last');
+
+function loadLast(){
+  let data=null;
+  try{ data = JSON.parse(localStorage.getItem('hv_last_game')||'null'); }catch{}
+  if(data && data.url){
+    lastWrap.style.display = 'flex';
+    lastTitle.textContent = data.title||data.url;
+    resumeBtn.onclick = ()=> location.href = data.url;
+    clearBtn.onclick  = ()=>{ localStorage.removeItem('hv_last_game'); lastWrap.style.display='none'; };
+  }else{
+    lastWrap.style.display = 'none';
+  }
+}
+
+/* ========= Init ========= */
+function init(){
+  render(GAMES);
+  applyFilters();
+  loadLast();
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

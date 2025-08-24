@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trò chơi - Ghép vần (kéo & thả)</title>
+  <!-- Reuse your existing styles -->
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="game.css">
+  <link rel="stylesheet" href="ghep-van.css">
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text">
+      <h1 id="game-name">Ghép vần đúng</h1>
+    </div>
+  </div>
+
+  <div id="game">
+    <div id="question" class="box">
+      <div style="text-align:center">
+        <h2>Bé hãy kéo thả (hoặc chạm) vần để điền vào chỗ trống nhé!</h2>
+        <button id="play-sound" class="button btn-grey">🔊 Nghe lại</button>
+        <div id="letter-image" style="margin-top:10px; text-align:center;">
+          <img id="current-letter-img" src="https://hoctiengviet.tforart.vn/wp-content/uploads/2025/08/37575451_8548196.jpg" alt="gợi ý" width="150">
+        </div>
+      </div>
+      <div id="prompt" style="text-align:center"></div>
+      <div id="feedback"></div>
+      <div id="touch-hint">Mẹo: Trên điện thoại, chạm vào thẻ để chọn / thay thế.</div>
+    </div>
+
+    <div id="choices"></div>
+  </div>
+</main>
+
+<script src="ghep-van.js"></script>
+</body>
+</html>

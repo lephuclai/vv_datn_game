@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dino học chữ – Runner có câu hỏi</title>
+
+<!-- keep your site’s look -->
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="game.css">
+
+<style>
+  /* minimal extras, won’t disturb your theme */
+  #game-name{ background:#65BF3B; color:#fff }
+  #hud{ display:flex; gap:1rem; align-items:center; padding:8px 14px }
+  #hud .hearts{ letter-spacing: 4px }
+  #wrap{ display:flex; justify-content:center; }
+  #stage{
+    width: 100%; max-width: 900px;
+    border-radius: 10px; overflow: hidden;
+    background: #F8F8F8;
+    box-shadow: 0 3px 12px rgba(0,0,0,.12);
+  }
+  #topbar{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px }
+  #controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+
+  /* Canvas container keeps aspect; canvas scales crisply */
+  .canvas-wrap{
+    position:relative;
+    aspect-ratio: 900 / 280;   /* virtual size used by the game */
+    background: linear-gradient(#fff,#f5f5f5);
+  }
+  canvas{ width:100%; height:100%; display:block; }
+
+  /* QUIZ modal */
+  #quiz{
+    position:absolute; inset:0;
+    background: rgba(0,0,0,.45);
+    display:none; align-items:center; justify-content:center;
+  }
+  #quiz .panel{
+    background:#fff; padding:16px; border-radius:12px;
+    width:min(92%, 720px);
+    box-shadow: 0 6px 28px rgba(0,0,0,.25);
+  }
+  #quiz h3{ margin:4px 0 8px; text-align:center }
+  #quiz #prompt{ text-align:center; font-size:22px; font-weight:800; margin:8px 0 2px }
+  #quiz #choices{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:10px }
+  #quiz .opt{
+    min-width:120px; padding:12px 16px; border-radius:12px; color:#fff; border:0; cursor:pointer;
+    font-size:20px; font-weight:800; box-shadow:0 3px 10px rgba(0,0,0,.15);
+  }
+  .c1{ background:#FF3859 } .c2{ background:#44A5DC } .c3{ background:#FFC200; color:#603 } .c4{ background:#65BF3B }
+  #quiz .bar{ display:flex; gap:10px; justify-content:center; align-items:center; margin-bottom:6px }
+  #quiz #feedback{ text-align:center; font-weight:800; min-height:24px; margin-top:6px }
+  #quiz #feedback.ok{ color:#2ecc71 } #quiz #feedback.no{ color:#e74c3c }
+
+  /* GAME OVER banner */
+  #over{
+    position:absolute; inset:0;
+    background: rgba(0,0,0,.45);
+    display:none; align-items:center; justify-content:center;
+  }
+  #over .panel{
+    background:#fff; padding:16px; border-radius:12px; text-align:center; width:min(92%, 520px);
+    box-shadow: 0 6px 28px rgba(0,0,0,.25);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info"><div class="text"><h1 id="game-name">🦖 Dino học chữ – Né chướng ngại + Trả lời câu hỏi</h1></div></div>
+
+  <div id="hud" class="box">
+    <div>🏆 Điểm: <strong id="score">0</strong></div>
+    <div>🏅 Kỷ lục: <strong id="best">0</strong></div>
+    <div class="hearts" id="hearts">❤️❤️❤️</div>
+  </div>
+
+  <div>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+  </div>
+
+  <div id="wrap">
+    <div id="stage" class="box">
+      <div id="topbar">
+        <div id="status">Nhấn <b>Space</b> hoặc <b>↑</b> để nhảy • <b>↓</b> để cúi</div>
+        <div id="controls">
+          <select id="mode" class="box">
+            <option value="letters">Chế độ: Chữ cái</option>
+            <option value="vans">Chế độ: Vần</option>
+          </select>
+          <button id="restart" class="button btn-grey">🔁 Chơi lại</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="game" width="900" height="280"></canvas>
+
+        <!-- QUIZ overlay -->
+        <div id="quiz" role="dialog" aria-modal="true">
+          <div class="panel">
+            <div class="bar">
+              <button id="play-sound" class="button btn-grey">🔊 Nghe lại</button>
+              <span id="q-mode-label"></span>
+            </div>
+            <h3>Trả lời để tiếp tục!</h3>
+            <div id="prompt"></div>
+            <div id="choices"></div>
+            <div id="feedback"></div>
+          </div>
+        </div>
+
+        <!-- GAME OVER overlay -->
+        <div id="over" role="dialog" aria-modal="true">
+          <div class="panel">
+            <h2>💥 Game Over</h2>
+            <p>Điểm của bé: <b id="final-score">0</b></p>
+            <button id="again" class="button btn-grey">🔁 Chơi lại</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ===================== DATA ===================== */
+const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
+const VANS    = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"];
+
+// Optional audio files (fallback to TTS if missing)
+const audioMap = {
+  // "a": "static/audio/a.mp3",
+};
+
+// TTS helper
+const audioCache = {};
+function speakVI(text){
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "vi-VN"; u.rate = 0.9;
+  try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch{}
+}
+function playSoundFor(token, mode){
+  const src = audioMap[token];
+  if(src){
+    if(!audioCache[token]){ const a=new Audio(src); a.preload="auto"; audioCache[token]=a; }
+    audioCache[token].currentTime=0;
+    audioCache[token].play().catch(()=>speakVI(mode==="letters" ? "chữ " + token : token));
+  } else {
+    speakVI(mode==="letters" ? "chữ " + token : token);
+  }
+}
+
+/* ===================== ELEMENTS ===================== */
+const scoreEl = document.getElementById("score");
+const bestEl  = document.getElementById("best");
+const heartsEl= document.getElementById("hearts");
+const modeSel = document.getElementById("mode");
+const restartBtn = document.getElementById("restart");
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const quiz = document.getElementById("quiz");
+const qPrompt = document.getElementById("prompt");
+const qChoices= document.getElementById("choices");
+const qFeedback=document.getElementById("feedback");
+const qPlayBtn = document.getElementById("play-sound");
+const qModeLbl = document.getElementById("q-mode-label");
+const over = document.getElementById("over");
+const finalScoreEl = document.getElementById("final-score");
+const againBtn = document.getElementById("again");
+
+/* ===================== ASSETS (PNGs) ===================== */
+const ASSETS = {
+  ground: "background-01.png",
+  dinoRun1: "dino-01.png",
+  dinoRun2: "dino-02.png",
+  dinoDuck: "Khủng long cúi sâu.png",
+  cactus1: "rock.png",
+//   cactus2: "cactus-02.png",
+  bird1: "chim bay 1.png",
+  bird2: "chim bay 6.png",
+};
+
+const IMGS = {};
+const MISSING = {};
+function loadImage(name, src){
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{ IMGS[name]=img; res(); };
+    img.onerror = ()=>{ MISSING[name]=true; res(); };
+    img.src = src;
+  });
+}
+async function preload(){
+  const tasks = Object.entries(ASSETS).map(([k,src])=>loadImage(k,src));
+  await Promise.all(tasks);
+}
+
+/* ===================== GAME STATE ===================== */
+const W=900, H=280; // virtual size
+const BIRD_LEVELS = [H - 100, H - 104, H - 132]; // ≈ centers 196 / 176 / 148 for H=280
+// Make the ground/background static (no horizontal scrolling)
+const STATIC_BG = true;
+let dino, groundOffset, obstacles, birds, tick, speed, gravity, score, best, lives, paused, quizActive, gameOver;
+let mode = "letters";
+let jumpPressed=false, duckPressed=false;
+let collidedEntity = null; // entity that triggered quiz, remove after answer
+
+function reset(){
+  dino = {
+    x: 60, y: H-60, w: 44, h: 50,
+    vy: 0, onGround: true, duck:false,
+    frameTime:0, frameIdx:0
+  };
+  groundOffset = 0;
+  obstacles = [];
+  birds = [];
+  tick = 0;
+  speed = 3; gravity = 0.55;
+  score = 0; lives = 3; paused=false; quizActive=false; gameOver=false;
+  collidedEntity = null;
+  best = Number(localStorage.getItem("hv_dino_best")||0);
+  scoreEl.textContent = "0";
+  bestEl.textContent = String(best);
+  heartsEl.textContent = "❤️❤️❤️";
+  spawnTimer = 0;
+}
+
+function loseLife(){
+  lives--;
+  heartsEl.textContent = "❤️".repeat(Math.max(lives,0)) + "🤍".repeat(Math.max(0, 3-lives));
+  if(lives<=0){ endGame(); }
+}
+
+function endGame(){
+  gameOver = true; paused=true; quizActive=false;
+  finalScoreEl.textContent = String(Math.floor(score));
+  over.style.display = "flex";
+  if(score>best){ localStorage.setItem("hv_dino_best", String(Math.floor(score))); bestEl.textContent=String(Math.floor(score)); }
+}
+
+/* ===================== INPUT ===================== */
+function jump(){
+  if(quizActive || paused) return;
+  if(dino.onGround){
+    dino.vy = -12.5;
+    dino.onGround = false;
+  }
+}
+function duck(down){
+  if(quizActive || paused) return;
+  dino.duck = down;
+}
+
+document.addEventListener("keydown", e=>{
+  if(e.code==="Space" || e.code==="ArrowUp"){ jumpPressed=true; jump(); e.preventDefault(); }
+  if(e.code==="ArrowDown"){ duckPressed=true; duck(true); e.preventDefault(); }
+});
+document.addEventListener("keyup", e=>{
+  if(e.code==="ArrowDown"){ duckPressed=false; duck(false); }
+});
+
+// Mobile: left third = duck, right = jump
+canvas.addEventListener("touchstart", e=>{
+  const x = (e.touches[0]||e.changedTouches[0]).clientX;
+  const rect = canvas.getBoundingClientRect();
+  const rel = x - rect.left;
+  if(rel < rect.width*0.33){ duckPressed=true; duck(true); }
+  else { jumpPressed=true; jump(); }
+});
+canvas.addEventListener("touchend", ()=>{ duckPressed=false; duck(false); });
+
+/* ===================== SPAWN ===================== */
+let spawnTimer = 0;
+function spawnStuff(dt){
+  spawnTimer -= dt;
+  if(spawnTimer <= 0){
+    if(Math.random() < 0.7){
+      // cactus
+      const type = Math.random()<0.5 ? "cactus1" : "cactus1";
+      const w = 32 + Math.random()*20, h = 44 + Math.random()*22;
+      obstacles.push({ type, x: W+20, y: H-20, w, h });
+    } else {
+      // 🐦 choose from tuned flight levels (requires duck only on the lowest)
+      const y = BIRD_LEVELS[Math.floor(Math.random() * BIRD_LEVELS.length)];
+      birds.push({ x: W+20, y, w: 46, h: 32, flap:0 });
+    }
+    // reasonable spacing at your current pace
+    spawnTimer = 900 + Math.random()*900; // ms
+  }
+}
+
+
+/* ===================== PHYSICS ===================== */
+function update(dt){
+  if(paused || quizActive || gameOver) return;
+
+  // ↓ gentler acceleration
+  speed += dt * 0.0005;   // was 0.0008
+
+  score += dt * 0.01 * speed;
+
+  // ✅ keep HUD score updated
+  const shown = Math.floor(score);
+  scoreEl.textContent = String(shown);
+
+  // update best live
+  if(shown > best){
+    best = shown;
+    bestEl.textContent = String(best);
+  }
+
+  // dino anim
+  dino.frameTime += dt;
+  if(dino.frameTime > 110){
+    dino.frameTime = 0;
+    dino.frameIdx = (dino.frameIdx+1)%2;
+  }
+
+  // jump physics
+  dino.y += dino.vy;
+  dino.vy += gravity;
+  const foot = H-20; // ground baseline
+  const standingH = 50, duckH = 36;
+  const targetH = dino.duck && dino.onGround ? duckH : standingH;
+  dino.h = targetH;
+
+  if(dino.y + dino.h >= foot){
+    dino.y = foot - dino.h;
+    dino.vy = 0; dino.onGround = true;
+  }
+
+  // move ground
+//   groundOffset = (groundOffset - speed) % W;
+  if (!STATIC_BG) groundOffset = (groundOffset - speed) % W;
+  else groundOffset = 0;
+
+  // spawn & move
+  spawnStuff(dt);
+  obstacles.forEach(o=> o.x -= speed);
+  birds.forEach(b=>{ b.x -= speed*1.15; b.flap += dt; });
+
+  // cleanup
+  obstacles = obstacles.filter(o=> o.x > -120);
+  birds = birds.filter(b=> b.x > -120);
+
+  // collisions (smaller dino hitbox)
+  const dBox = { x: dino.x+8, y: dino.y+6, w: dino.w-16, h: dino.h-12 };
+
+  for(const o of obstacles){
+    const oBox = { x:o.x- o.w*0.5, y:o.y - o.h, w:o.w, h:o.h };
+    if(aabb(dBox,oBox)){ onCollision(o); break; }
+  }
+  for(const b of birds){
+    const bBox = { x:b.x-23, y:b.y-16, w:46, h:32 };
+    if(aabb(dBox,bBox)){ onCollision(b,true); break; }
+  }
+}
+
+function aabb(a,b){
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/* ===================== COLLISION → QUIZ ===================== */
+let qAnswer="", qBank=[];
+function onCollision(entity, isBird=false){
+  if(quizActive || paused || gameOver) return;
+  // pause game loop and bring up quiz
+  quizActive = true; paused = true;
+  collidedEntity = { ref: entity, bird: !!isBird };
+
+  // build question
+  const m = modeSel.value;
+  qModeLbl.textContent = (m==="letters" ? "Chế độ: Chữ cái" : "Chế độ: Vần");
+  qBank = (m==="letters") ? LETTERS : VANS;
+  qAnswer = qBank[Math.floor(Math.random()*qBank.length)];
+
+  qChoices.innerHTML = "";
+  const opts = buildOptions(qAnswer, qBank, 4);
+  opts.forEach((opt,i)=>{
+    const btn = document.createElement("button");
+    btn.className = `opt c${(i%4)+1}`;
+    btn.textContent = opt;
+    btn.onclick = ()=> answerQuiz(opt);
+    qChoices.appendChild(btn);
+  });
+
+  qFeedback.textContent = ""; qFeedback.className = "";
+  qPlayBtn.onclick = ()=> playSoundFor(qAnswer, m);
+  playSoundFor(qAnswer, m);
+
+  quiz.style.display = "flex";
+}
+
+function buildOptions(answer, bank, n){
+  const set = new Set([answer]);
+  while(set.size < n) set.add(bank[Math.floor(Math.random()*bank.length)]);
+  return [...set].sort(()=>Math.random()-0.5);
+}
+
+function answerQuiz(opt){
+  const m = modeSel.value;
+  const correct = (opt === qAnswer);
+  if(correct){
+    qFeedback.textContent = "✅ Chính xác! Tiếp tục nào!";
+    qFeedback.className = "ok";
+  }else{
+    qFeedback.textContent = "❌ Chưa đúng rồi!";
+    qFeedback.className = "no";
+  }
+
+  // remove collided entity so we don't hit it instantly again
+  if(collidedEntity){
+    if(collidedEntity.bird){
+      const ref = collidedEntity.ref;
+      birds = birds.filter(b=> b!==ref);
+    }else{
+      const ref = collidedEntity.ref;
+      obstacles = obstacles.filter(o=> o!==ref);
+    }
+  }
+
+  setTimeout(()=>{
+    if(!correct) loseLife();
+    // resume unless dead
+    if(!gameOver){
+      quiz.style.display = "none";
+      paused=false; quizActive=false;
+    }
+  }, 450);
+}
+
+/* ===================== DRAW ===================== */
+function draw(dt){
+  // scale canvas to CSS size (crisp)
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+  if(canvas.width !== Math.floor(cssW*dpr) || canvas.height !== Math.floor(cssH*dpr)){
+    canvas.width = Math.floor(cssW*dpr); canvas.height = Math.floor(cssH*dpr);
+  }
+  const scaleX = canvas.width / W, scaleY = canvas.height / H;
+  ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+  ctx.clearRect(0,0,W,H);
+
+  // background (plain)
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0,0,W,H);
+
+// ---- draw ground (stretched) ----
+const groundY = H - 20;
+if (IMGS.ground && !MISSING.ground) {
+  const img = IMGS.ground;
+  const scaledH = (img.height * W) / img.width; // preserve aspect ratio
+  ctx.drawImage(img, 0, groundY - scaledH + 2, W, scaledH);
+
+} else {
+  ctx.strokeStyle = "#999"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, groundY + 0.5); ctx.lineTo(W, groundY + 0.5); ctx.stroke();
+}
+
+  // dino sprite
+  const img = dino.duck && dino.onGround ? IMGS.dinoDuck : (dino.frameIdx===0 ? IMGS.dinoRun1 : IMGS.dinoRun2);
+  const missing = dino.duck && dino.onGround ? MISSING.dinoDuck : (dino.frameIdx===0 ? MISSING.dinoRun1 : MISSING.dinoRun2);
+  if(img && !missing){
+    const w = dino.duck && dino.onGround ? 60 : 54;
+    const h = dino.h;
+    ctx.drawImage(img, dino.x - w/2, dino.y + dino.h - h, w, h);
+    dino.w = w;
+  } else {
+    ctx.fillStyle = "#333";
+    ctx.fillRect(dino.x - dino.w/2, dino.y, dino.w, dino.h);
+  }
+
+  // obstacles
+  obstacles.forEach(o=>{
+    const sprite = Math.random()<0.5 ? "cactus1":"cactus1"; // simple variety in draw
+    const img = IMGS[sprite], miss = MISSING[sprite];
+    if(img && !miss){
+      const w = o.w, h = o.h;
+      ctx.drawImage(img, o.x - w/2, o.y - h, w, h);
+    } else {
+      ctx.fillStyle = "#2c3e50";
+      ctx.fillRect(o.x - o.w/2, o.y - o.h, o.w, o.h);
+    }
+  });
+
+  // birds (flap between 2 sprites)
+  birds.forEach(b=>{
+    const up = (Math.floor(b.flap/120)%2===0);
+    const img = up ? IMGS.bird1 : IMGS.bird2;
+    if(img && !(up?MISSING.bird1:MISSING.bird2)){
+      ctx.drawImage(img, b.x - 23, b.y - 16, 46, 32);
+    }else{
+      ctx.fillStyle="#8e44ad";
+      ctx.fillRect(b.x-23, b.y-16, 46, 32);
+    }
+  });
+
+  // score
+  ctx.fillStyle="#444"; ctx.font="16px monospace";
+  ctx.fillText("SCORE: "+Math.floor(score), W-150, 22);
+}
+
+/* ===================== LOOP ===================== */
+let last = 0;
+function loop(ts){
+  if(!last) last = ts;
+  const dt = ts - last; last = ts;
+
+  update(dt);
+  draw(dt);
+
+  requestAnimationFrame(loop);
+}
+
+/* ===================== INIT ===================== */
+restartBtn.addEventListener("click", ()=>{
+  over.style.display="none"; quiz.style.display="none";
+  reset(); paused=false; quizActive=false; gameOver=false;
+});
+againBtn.addEventListener("click", ()=> restartBtn.click());
+modeSel.addEventListener("change", ()=>{ /* used during quiz creation */ });
+
+// prime audio on first interaction
+document.addEventListener("click", ()=>{}, { once:true });
+
+(async function start(){
+  await preload();
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

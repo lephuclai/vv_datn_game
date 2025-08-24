@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mê cung – Mèo tìm cá (Chữ cái & Vần)</title>
+
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="game.css">
+
+  <style>
+    #game-name { background:#b4479c; color:#fff }
+
+    #question { text-align:center }
+    #controls { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0 }
+    #mode-select { font-size:14px; padding:6px 10px; border-radius:8px }
+    #status { text-align:center; font-weight:700; color:#606060; margin-top:6px }
+
+    #maze-wrap { margin: 12px auto; max-width: 720px; }
+    #maze {
+      --cols: 15; --rows: 10; --tile: 42px;
+      position: relative;
+      width: calc(var(--cols) * var(--tile));
+      height: calc(var(--rows) * var(--tile));
+      background: #e5f2ff;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0,0,0,.12);
+      overflow: hidden; margin: 0 auto;
+    }
+    .tile { position:absolute; width:var(--tile); height:var(--tile); left:0; top:0; box-sizing:border-box; }
+    .wall  { background:#7aa7c5; border:2px solid #5b89a7 }
+    .floor { background:#f8fff2; border:1px solid #e1f0d9 }
+    .start { background:#ddfff1; border:2px dashed #59c3a2 }
+    .goal  { background:#fff7d6; border:2px dashed #e0b000 }
+
+    .gate {
+      background: repeating-linear-gradient(45deg, #ffd4d4 0 10px, #ffc2c2 10px 20px);
+      border: 2px solid #ff6e6e;
+    }
+    .gate.open {
+      background:#f8fff2; border:2px solid #87d87c; box-shadow: inset 0 0 0 3px rgba(135,216,124,.5);
+    }
+
+    /* Cat (player) */
+    #player {
+      position:absolute;
+      width: calc(var(--tile) * 0.8);
+      height: calc(var(--tile) * 0.8);
+      transform: translate(10%,10%);
+      display:grid; place-items:center;
+      font-size: calc(var(--tile) * 0.6);
+      border-radius: 50%;
+      line-height: calc(var(--tile) * 0.8);
+      text-align: center;
+      background:#fff; outline:4px solid #44A5DC; box-shadow:0 4px 10px rgba(0,0,0,.2);
+      transition: left .12s ease, top .12s ease; z-index:5;
+    }
+    /* Fish icon sitting on the goal tile */
+    #goal-emoji {
+      position:absolute; z-index:4;
+      width: var(--tile); height: var(--tile);
+      display:grid; place-items:center; font-size: 26px;
+      pointer-events:none;
+    }
+
+    /* Overlay question modal */
+    #overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.25); align-items:center; justify-content:center; z-index:100; }
+    .qbox { background:#fff; border-radius:10px; padding:16px; box-shadow:0 12px 30px rgba(0,0,0,.2); width:min(92vw,560px); text-align:center; }
+    .qbox h3 { margin:8px 0 12px }
+    .choices { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:6px }
+    .choices button { min-width:120px; padding:12px 16px; border-radius:12px; border:0; color:#fff; font-weight:800; cursor:pointer; box-shadow:0 3px 10px rgba(0,0,0,.18); }
+    .c1{ background:#FF3859 } .c2{ background:#44A5DC } .c3{ background:#FFC200; color:#603 } .c4{ background:#65BF3B }
+
+    #feedback { font-weight:700; min-height:24px; margin-top:8px }
+    #feedback.ok{ color:#2ecc71 } #feedback.no{ color:#e74c3c }
+
+    #winbar { display:none; text-align:center; margin-top:10px }
+    #winbar button { cursor:pointer }
+
+    @media (max-width:680px){ #maze{ --tile:36px } #player{ font-size:24px } }
+  </style>
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text"><h1 id="game-name">Mê cung – Mèo tìm cá (Chữ cái & Vần)</h1></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="box" style="display:flex; gap:1rem; align-items:center; padding:8px 14px">
+    <div>🏆 Điểm: <strong id="score">0</strong></div>
+    <div>⭐ Liên tiếp: <strong id="streak">0</strong></div>
+    <div>🏅 Kỷ lục: <strong id="best-streak">0</strong></div>
+  </div>
+
+  <div id="game">
+    <div id="question" class="box">
+      <h2>Bé dùng phím mũi tên (hoặc W/A/S/D) để giúp 🐱 tìm 🐟. Qua cổng sẽ có câu hỏi!</h2>
+      <div id="controls">
+        <button id="play-sound" class="button btn-grey">🔊 Nghe mẫu</button>
+        <select id="mode-select" class="box">
+          <option value="letters">Chế độ: Chữ cái</option>
+          <option value="vans">Chế độ: Vần</option>
+        </select>
+        <button id="restart-btn" class="button btn-grey">🔁 Chơi lại</button>
+      </div>
+      <div id="status">Hãy mở các cổng câu hỏi để đi tiếp!</div>
+      <div id="winbar"><button id="again-btn" class="button btn-grey">🎉 Chơi lại mê cung</button></div>
+    </div>
+
+    <div id="maze-wrap" class="box">
+      <div id="maze"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Question overlay -->
+<div id="overlay">
+  <div class="qbox">
+    <h3 id="qtitle">Câu hỏi</h3>
+    <div id="qprompt" style="font-size:26px; font-weight:800"></div>
+    <button id="qplay-sound" class="button btn-grey" style="margin:8px 0">🔊 Nghe lại</button>
+    <div class="choices" id="qchoices"></div>
+    <div id="feedback"></div>
+  </div>
+</div>
+
+<script>
+  /* ======= DATA ======= */
+  const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
+  const VANS = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"];
+
+  // Optional audio files; fallback to TTS
+  const audioMap = { /* "ê": "static/audio/letters/e-circumflex.mp3" */ };
+
+  // ***** FIVE MAZES (15x10) *****
+  // Legend: 1=wall, 0=floor, S=start (cat), G=goal (fish), X=gate(question)
+  const MAZES = [
+    [
+      "111111111111111",
+      "1S000001X00000G",
+      "1011110101111X1",
+      "100001010000001",
+      "10X101011110101",
+      "100001000010001",
+      "101111011110101",
+      "1000000X0000001",
+      "101111111011101",
+      "111111111111111"
+    ],
+    [
+    "111111111111111",
+    "1S0X000001G00X1",
+    "101111110111101",
+    "1X0000010100001",
+    "101111010111101",
+    "100001000001001",
+    "101101111101101",
+    "100101000100X01",
+    "101100000111101",
+    "111111111111111"
+    ],
+    [
+    "111111111111111",
+    "1S0X1000X0000G1",
+    "111010111111111",
+    "101010000000001",
+    "1010111111111X1",
+    "100010000000001",
+    "1X0010000101101",
+    "101111110100001",
+    "100000000100001",
+    "111111111111111"
+    ],
+  ];
+
+  /* ======= STATE ======= */
+  let GRID = MAZES[0]; // will be set randomly on reset
+  const cols = 15, rows = 10;
+
+  let mode = "letters";
+  let score = 0, streak = 0, bestStreak = Number(localStorage.getItem("hv_maze_best")||0);
+  let player = { x: 0, y: 0 }; // tile coords
+  let startPos = { x: 0, y: 0 };
+  let goalPos  = { x: cols-1, y: 1 };
+  let cells = [];     // numeric grid
+  let gates = [];     // {x,y,open:false}
+  let answering = false;
+
+  const mazeEl = document.getElementById("maze");
+  const overlay = document.getElementById("overlay");
+  const qtitle = document.getElementById("qtitle");
+  const qprompt = document.getElementById("qprompt");
+  const qchoices = document.getElementById("qchoices");
+  const feedback = document.getElementById("feedback");
+  const statusEl = document.getElementById("status");
+
+  const playBtn = document.getElementById("play-sound");
+  const modeSel = document.getElementById("mode-select");
+  const restartBtn = document.getElementById("restart-btn");
+  const againBtn = document.getElementById("again-btn");
+  const winbar = document.getElementById("winbar");
+
+  function updateHUD(){
+    document.getElementById("score").textContent = String(score);
+    document.getElementById("streak").textContent = String(streak);
+    document.getElementById("best-streak").textContent = String(bestStreak);
+  }
+
+  /* ======= AUDIO ======= */
+  const audioCache = {};
+  function speakVI(text){ const u=new SpeechSynthesisUtterance(text); u.lang="vi-VN"; u.rate=0.9; try{ speechSynthesis.cancel(); speechSynthesis.speak(u);}catch{} }
+  function playSoundFor(token){
+    const src = audioMap[token];
+    if(src){
+      if(!audioCache[token]){ const a=new Audio(src); a.preload="auto"; audioCache[token]=a; }
+      audioCache[token].currentTime=0; audioCache[token].play().catch(()=>speakVI(token));
+    } else {
+      if(mode==="letters") speakVI(`chữ ${token}`); else speakVI(token);
+    }
+  }
+
+  /* ======= GRID HELPERS ======= */
+  function xyToPx(x,y){
+    const size = parseInt(getComputedStyle(mazeEl).getPropertyValue('--tile'));
+    return { left: x*size, top: y*size };
+  }
+
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function shuffled(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+
+  function parseGrid(){
+    cells = []; gates = [];
+    for(let y=0; y<rows; y++){
+      const row = [];
+      for(let x=0; x<cols; x++){
+        const ch = GRID[y][x];
+        if(ch==='1'){ row.push(1); }
+        else if(ch==='0'){ row.push(0); }
+        else if(ch==='S'){ row.push(0); startPos={x,y}; }
+        else if(ch==='G'){ row.push(0); goalPos={x,y}; }
+        else if(ch==='X'){ row.push(2); gates.push({x,y,open:false}); }
+      }
+      cells.push(row);
+    }
+  }
+
+  function drawGrid(){
+    mazeEl.style.setProperty('--cols', cols);
+    mazeEl.style.setProperty('--rows', rows);
+    mazeEl.innerHTML = "";
+
+    // draw tiles
+    for(let y=0; y<rows; y++){
+      for(let x=0; x<cols; x++){
+        const t = document.createElement('div');
+        t.className = 'tile';
+        const {left, top} = xyToPx(x,y);
+        t.style.left = left + 'px';
+        t.style.top  = top  + 'px';
+        const v = cells[y][x];
+        if(x===startPos.x && y===startPos.y) t.classList.add('start');
+        else if(x===goalPos.x && y===goalPos.y) t.classList.add('goal');
+        else if(v===1) t.classList.add('wall');
+        else if(v===0) t.classList.add('floor');
+        else if(v===2) t.classList.add('gate');
+        mazeEl.appendChild(t);
+      }
+    }
+
+    // fish icon at goal
+    const fish = document.createElement('div');
+    fish.id = 'goal-emoji'; fish.textContent = '🐟';
+    const gp = xyToPx(goalPos.x, goalPos.y);
+    fish.style.left = gp.left + 'px'; fish.style.top = gp.top + 'px';
+    mazeEl.appendChild(fish);
+
+    // cat player
+    const p = document.createElement('div');
+    p.id = 'player'; p.textContent = '🐱';
+    const pp = xyToPx(player.x, player.y);
+    p.style.left = pp.left + 'px'; p.style.top = pp.top + 'px';
+    mazeEl.appendChild(p);
+  }
+
+  function setPlayerPos(x,y){
+    player.x = x; player.y = y;
+    const p = document.getElementById('player');
+    const {left, top} = xyToPx(x,y);
+    p.style.left = left + 'px';
+    p.style.top  = top  + 'px';
+  }
+
+  function openGateAt(x,y){
+    cells[y][x] = 0;
+    const idx = y*cols + x; // tile order in DOM
+    const tile = mazeEl.children[idx];
+    if(tile && tile.classList.contains('tile')){
+      tile.classList.remove('gate');
+      tile.classList.add('gate','open');
+      setTimeout(()=>{ tile.classList.remove('gate','open'); tile.classList.add('floor'); }, 400);
+    }
+  }
+
+  /* ======= QUESTIONS ======= */
+  function makeQuestion(){
+    const bank = (mode === "letters") ? LETTERS : VANS;
+    const answer = pick(bank);
+    const opts = new Set([answer]);
+    while(opts.size < 4){ opts.add(pick(bank)); }
+    return { answer, options: shuffled([...opts]) };
+  }
+
+  function showQuestion(onResult){
+    answering = true;
+    feedback.textContent = ""; 
+    feedback.className = "";
+
+    const q = makeQuestion();
+    document.getElementById('qtitle').textContent = (mode==="letters") ? "Chọn đúng chữ" : "Chọn đúng vần";
+
+    qchoices.innerHTML = "";
+    q.options.forEach((opt,i)=>{
+      const btn = document.createElement('button');
+      btn.className = `c${(i%4)+1}`;
+      btn.textContent = opt;
+      btn.onclick = ()=>{
+        const ok = (opt === q.answer);
+        if(ok){
+          feedback.textContent = "Đúng rồi! Cổng đã mở.";
+          feedback.className = "ok";
+          score++; streak++; if(streak>bestStreak){ bestStreak=streak; localStorage.setItem("hv_maze_best", String(bestStreak)); }
+          updateHUD();
+          setTimeout(()=>{ overlay.style.display="none"; answering=false; onResult(true); }, 450);
+        }else{
+          feedback.textContent = "Chưa đúng! Quay lại điểm bắt đầu nhé.";
+          feedback.className = "no";
+          streak = 0; updateHUD();
+          setTimeout(()=>{ overlay.style.display="none"; answering=false; onResult(false); }, 450);
+        }
+      };
+      qchoices.appendChild(btn);
+    });
+
+    const qplayBtn = document.getElementById("qplay-sound");
+    qplayBtn.onclick = () => playSoundFor(q.answer);
+
+    overlay.style.display = "flex";
+    playSoundFor(q.answer);
+  }
+
+  /* ======= GAME FLOW ======= */
+  function getTile(x,y){ return (x<0||x>=cols||y<0||y>=rows) ? 1 : cells[y][x]; }
+
+  function onStep(){
+    const here = getTile(player.x, player.y);
+
+    // Gate triggers
+    if(here === 2){
+      const g = gates.find(gg=>gg.x===player.x && gg.y===player.y && !gg.open);
+      if(g){
+        showQuestion((ok)=>{
+          if(ok){ g.open = true; openGateAt(g.x, g.y); }
+          else  { setPlayerPos(startPos.x, startPos.y); }
+        });
+      }
+    }
+
+    // Goal reached
+    if(player.x === goalPos.x && player.y === goalPos.y){
+      statusEl.textContent = "🎉 Mèo đã tìm thấy cá rồi!";
+      winbar.style.display = "block";
+    }
+  }
+
+  function move(dx,dy){
+    if(answering) return;
+    const nx = player.x + dx, ny = player.y + dy;
+    if(nx<0||nx>=cols||ny<0||ny>=rows) return;
+    const v = getTile(nx,ny);
+    if(v === 1) return; // wall
+    setPlayerPos(nx, ny);
+    onStep();
+  }
+
+  /* ======= INPUT ======= */
+  function onKey(e){
+    const k = e.key.toLowerCase();
+    if(k === "arrowup" || k === "w"){ move(0,-1); e.preventDefault(); }
+    else if(k === "arrowdown" || k === "s"){ move(0,1); e.preventDefault(); }
+    else if(k === "arrowleft" || k === "a"){ move(-1,0); e.preventDefault(); }
+    else if(k === "arrowright" || k === "d"){ move(1,0); e.preventDefault(); }
+  }
+
+  /* ======= INIT / RESET ======= */
+  function resetGame(keepMode=true){
+    // pick a random maze each time
+    GRID = pick(MAZES);
+    statusEl.textContent = "Hãy mở các cổng câu hỏi để đi tiếp!";
+    winbar.style.display = "none";
+
+    parseGrid();
+    player = { x: startPos.x, y: startPos.y };
+    drawGrid();
+    setPlayerPos(player.x, player.y);
+  }
+
+  function init(){
+    updateHUD();
+    modeSel.addEventListener("change", (e)=>{ mode = e.target.value; resetGame(true); });
+    restartBtn.addEventListener("click", ()=> resetGame(true));
+    againBtn.addEventListener("click", ()=> resetGame(true));
+    playBtn.addEventListener("click", ()=> speakVI("Hãy giúp mèo đi qua cổng câu hỏi để tìm cá"));
+
+    const prime = ()=>{ document.removeEventListener("click", prime); };
+    document.addEventListener("click", prime, { once:true });
+
+    resetGame(true);
+    window.addEventListener("keydown", onKey);
+  }
+
+  window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

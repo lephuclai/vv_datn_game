@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sút luân lưu – Nền & khung thành là ảnh</title>
+
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="game.css">
+
+<style>
+  #game-name{ background:#b4479c; color:#fff }
+  #question{ text-align:center }
+  #controls{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0 }
+  #mode-select{ font-size:14px; padding:6px 10px; border-radius:8px; }
+  #prompt{ font-size:28px; font-weight:800; margin:8px 0 0 }
+  #choices{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px }
+  .opt{ min-width:120px; padding:14px 18px; border-radius:12px; font-size:22px; font-weight:700; color:#fff;
+        cursor:pointer; user-select:none; border:0; box-shadow:0 3px 10px rgba(0,0,0,.2) }
+  .opt.c1{ background:#FF3859 } .opt.c2{ background:#44A5DC }
+  .opt.c3{ background:#FFC200; color:#603 } .opt.c4{ background:#65BF3B }
+  #feedback{ text-align:center; font-weight:700; min-height:26px; margin-top:6px }
+  #feedback.ok{ color:#2ecc71 } #feedback.no{ color:#e74c3c }
+  #endbar{ display:none; text-align:center; margin-top:10px } #endbar button{ cursor:pointer }
+
+  #board{ display:flex; justify-content:center; gap:20px; margin:8px 0; font-weight:800 }
+  .scorebox{ background:#fff; border-radius:10px; padding:8px 14px; box-shadow:0 3px 8px rgba(0,0,0,.1) }
+
+  /* ===== Pitch with background PNG that ALREADY contains the goal ===== */
+/* replace the old #pitch CSS block */
+  #pitch{
+    position: relative;
+    margin: 14px auto 0;
+    width: 100%;
+    max-width: 900px;
+
+    /* keep the background image composition intact */
+    aspect-ratio: 880 / 487;   /* ← use YOUR bg image ratio here */
+    height: auto;
+
+    border-radius: 14px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.12);
+    overflow: hidden;
+
+    background: url("bong-da-01.png") center/cover no-repeat;
+  }
+
+
+  /* Sprites are positioned by percentages so layout adapts to any bg */
+  .sprite{
+    position:absolute;
+    left: var(--x,50%);  top: var(--y,50%);
+    transform: translate(-50%, -50%) var(--extra, none);
+    transition: left .35s ease, top .35s ease, transform .35s ease;
+    will-change: left, top, transform;
+    pointer-events:none;
+  }
+
+/* Bigger sprites */
+#striker{ width: 15%; max-width:none; }
+#keeper { width: 20%; max-width:none; }
+#ball   { width: 7%;  max-width:none; }
+
+/* Optional: a hair faster motion for bigger sprites */
+#keeper{ transition: left .30s ease, top .30s ease, transform .30s ease; }
+#ball  { transition: left .55s ease, top .55s ease, transform .55s ease; }
+#striker{ transition: left .30s ease, top .30s ease, transform .30s ease, opacity .30s ease; }
+
+
+  /* Cute micro-animations */
+  .striker-run{ --extra: translate(-50%, -50%) translate(3%, -6%) }
+  .ball-spin{ --extra: translate(-50%, -50%) rotate(-18deg) }
+  .keeper-dive-left { --extra: translate(-50%, -50%) rotate(10deg)  }
+  .keeper-dive-right{ --extra: translate(-50%, -50%) rotate(-10deg) }
+  .keeper-block     { --extra: translate(-50%, -50%) scale(1.06) }
+
+  /* Mobile tweak */
+  @media (max-width:680px){
+    #pitch{ height: min(64vh, 440px) }
+  }
+
+    /* put this with your other styles */
+  #goal-debug {
+    position:absolute; border: 2px dashed rgba(255,255,255,.9);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.08) inset;
+    pointer-events:none; display:none; z-index: 2;
+  }
+
+</style>
+</head>
+<body>
+<header>
+  <div id="name">
+    <div id="logo" class="scale-up">
+      <a href="https://hoctiengviet.tforart.vn/home/">
+        <img src="https://vinhpham041102-lxpqv.wpcomstaging.com/wp-content/uploads/2025/08/logo.png" alt="logo">
+      </a>
+    </div>
+  </div>
+  <div id="account"></div>
+</header>
+
+<main>
+  <div id="game-info">
+    <div class="text"><h1 id="game-name">Sút luân lưu</h1></div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="box" style="display:flex; gap:1rem; align-items:center; padding:8px 14px">
+    <div>🏆 Điểm: <strong id="score">0</strong></div>
+    <div>⭐ Liên tiếp: <strong id="streak">0</strong></div>
+    <div>🏅 Kỷ lục: <strong id="best-streak">0</strong></div>
+  </div>
+
+  <!-- Scoreboard -->
+
+  <div id="game">
+    <div id="question" class="box">
+      <div id="controls">
+        <button id="play-sound" class="button btn-grey">🔊 Nghe lại</button>
+        <select id="mode-select" class="box">
+          <option value="letters">Chế độ: Chữ cái</option>
+          <option value="vans">Chế độ: Vần</option>
+        </select>
+        <button id="restart-btn" class="button btn-grey">🔁 Chơi mới</button>
+      </div>
+      <div id="status">Lượt sút của <b>bé</b></div>
+      <div id="prompt"></div>
+      <div id="choices"></div>
+      <div id="feedback"></div>
+      <div id="endbar"><button id="again-btn" class="button btn-grey">🔁 Chơi lại loạt sút</button></div>
+    </div>
+
+  <div id="board">
+    <div class="scorebox">⚽ Bé: <span id="you-goals">0</span>/<span id="you-taken">0</span></div>
+    <div class="scorebox">🛡️ Đối phương: <span id="opp-goals">0</span>/<span id="opp-taken">0</span></div>
+  </div>
+
+    <!-- PITCH -->
+    <div id="pitch" class="box">
+      <!-- Replace PNGs below with your artwork -->
+      <div id="goal-debug"></div>
+      <img id="keeper"  class="sprite" src="bong-da-04.png"   alt="keeper">
+      <img id="ball"    class="sprite" src="bong-da-02.png"     alt="ball">
+      <img id="striker" class="sprite" src="bong-da-03.png"  alt="striker">
+    </div>
+  </div>
+</main>
+
+<script>
+/* ===================== DATA ===================== */
+const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
+const VANS = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"];
+
+// Optional audio per token; TTS fallback if not provided.
+const audioMap = {};
+
+/* ================== CONFIG / STATE ================== */
+const KICKS_PER_SIDE = 5;
+
+// Baked default calibration (replace with your saved numbers to make it global)
+const GOAL_RECT_DEFAULT = { x1: 26, y1: 24, x2: 74, y2: 60 };
+const START = {
+  striker: { x: 30, y: 70 },
+  ball:    { x: 48, y: 86 }
+};
+
+let mode = "letters";         // "letters" | "vans"
+let turn = "attack";          // "attack" (bé sút) | "defense" (bé bắt)
+let youGoals = 0, oppGoals = 0;
+let youTaken = 0, oppTaken = 0;
+
+let score = 0, streak = 0, bestStreak = Number(localStorage.getItem("hv_penalty_png_best")||0);
+let answer = "";
+
+/* ================== SPRITES (teams) ================== */
+const ASSETS = {
+  kid: { striker: "bong-da-03.png", keeper: "bong-da-oppo-02.png" },
+  opp: { striker: "bong-da-oppo-01.png", keeper: "bong-da-04.png" }
+};
+[ASSETS.kid.striker, ASSETS.kid.keeper, ASSETS.opp.striker, ASSETS.opp.keeper].forEach(src=>{
+  const i = new Image(); i.src = src;
+});
+
+/* ===================== ELEMENTS ===================== */
+const scoreEl    = document.getElementById("score");
+const streakEl   = document.getElementById("streak");
+const bestEl     = document.getElementById("best-streak");
+const youGoalsEl = document.getElementById("you-goals");
+const oppGoalsEl = document.getElementById("opp-goals");
+const youTakenEl = document.getElementById("you-taken");
+const oppTakenEl = document.getElementById("opp-taken");
+
+const statusEl   = document.getElementById("status");
+const promptEl   = document.getElementById("prompt");
+const choicesEl  = document.getElementById("choices");
+const feedbackEl = document.getElementById("feedback");
+const endbar     = document.getElementById("endbar");
+
+const playBtn    = document.getElementById("play-sound");
+const modeSel    = document.getElementById("mode-select");
+const restartBtn = document.getElementById("restart-btn");
+const againBtn   = document.getElementById("again-btn");
+
+const pitch      = document.getElementById("pitch");
+const goalDebug  = document.getElementById("goal-debug");
+const keeperEl   = document.getElementById("keeper");
+const ballEl     = document.getElementById("ball");
+const strikerEl  = document.getElementById("striker");
+
+/* ====================== HUD ====================== */
+function updateHUD(){
+  scoreEl.textContent  = String(score);
+  streakEl.textContent = String(streak);
+  bestEl.textContent   = String(bestStreak);
+}
+function updateBoard(){
+  youGoalsEl.textContent = String(youGoals);
+  oppGoalsEl.textContent = String(oppGoals);
+  youTakenEl.textContent = String(youTaken);
+  oppTakenEl.textContent = String(oppTaken);
+}
+
+/* ===================== AUDIO ===================== */
+const audioCache = {};
+function speakVI(text){
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "vi-VN"; u.rate = 0.9;
+  try{ speechSynthesis.cancel(); speechSynthesis.speak(u); }catch{}
+}
+function playSoundFor(token){
+  const src = audioMap[token];
+  if(src){
+    if(!audioCache[token]){ const a=new Audio(src); a.preload="auto"; audioCache[token]=a; }
+    audioCache[token].currentTime=0;
+    audioCache[token].play().catch(()=>speakVI(token));
+  } else {
+    if(mode==="letters") speakVI(`chữ ${token}`); else speakVI(token);
+  }
+}
+
+/* =============== HELPERS =============== */
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+function buildOptions(answer, bank, n=4){
+  const set = new Set([answer]);
+  while(set.size < n) set.add(pick(bank));
+  return [...set].sort(()=>Math.random()-0.5);
+}
+
+/* ========== CALIBRATION / POSITIONING ========== */
+const GOAL_KEY = "hv_penalty_goal_rect";
+let goalRect = JSON.parse(localStorage.getItem(GOAL_KEY) || "null") || GOAL_RECT_DEFAULT;
+
+if (goalRect.x2 === goalRect.x1 || goalRect.y2 === goalRect.y1) {
+  goalRect = { x1: 26, y1: 24, x2: 74, y2: 60 };
+}
+
+function inGoal(gx, gy){
+  const x = goalRect.x1 + gx * (goalRect.x2 - goalRect.x1);
+  const y = goalRect.y1 + gy * (goalRect.y2 - goalRect.y1);
+  return { x, y };
+}
+
+const POS = {
+  striker: { ...START.striker },
+  ball:    { ...START.ball },
+  keeper:  inGoal(0.5, 0.5)
+};
+
+function setSprite(el, who, x, y){
+  POS[who].x = x; POS[who].y = y;
+  el.style.setProperty('--x', x + '%');
+  el.style.setProperty('--y', y + '%');
+  el.style.removeProperty('--extra');
+  el.className = el.className.replace(/\b(ball-spin|striker-run|keeper-\S+|keeper-block)\b/g,'').trim();
+}
+
+function resetSprites(){
+  setSprite(strikerEl, 'striker', START.striker.x, START.striker.y);
+  setSprite(ballEl,    'ball',    START.ball.x,    START.ball.y);
+  const mid = inGoal(0.5, 0.5);
+  setSprite(keeperEl,  'keeper',  mid.x,           mid.y);
+}
+
+function targetsFromRect(){
+  return {
+    left:   inGoal(0.20, 0.58),
+    center: inGoal(0.50, 0.50),
+    right:  inGoal(0.80, 0.42)
+  };
+}
+let TARGETS = targetsFromRect();
+
+const RUN_TO_BALL_OFFSET = { x: -3.0, y: -6.0 };
+function strikerRun(){
+  const tx = POS.ball.x + RUN_TO_BALL_OFFSET.x;
+  const ty = POS.ball.y + RUN_TO_BALL_OFFSET.y;
+  setSprite(strikerEl, 'striker', tx, ty);
+  strikerEl.classList.add("striker-run");
+}
+
+function chooseKeeperDir(turn, correct, shotDir){
+  if(shotDir === 'center') return 'center';
+  if(turn === 'attack'){
+    return correct ? (shotDir === 'left' ? 'right' : 'left') : shotDir;
+  } else {
+    return correct ? shotDir : (shotDir === 'left' ? 'right' : 'left');
+  }
+}
+
+function ballTo(where){
+  const t = (where==="left")?TARGETS.left : (where==="right")?TARGETS.right : TARGETS.center;
+  setSprite(ballEl, 'ball', t.x, t.y);
+  ballEl.classList.add("ball-spin");
+}
+
+function keeperTo(where){
+  const t = where === 'left' ? TARGETS.left
+        : where === 'right' ? TARGETS.right
+        : TARGETS.center;
+  setSprite(keeperEl, 'keeper', t.x, t.y);
+  keeperEl.classList.remove('keeper-dive-left','keeper-dive-right','keeper-block');
+  if(where==='left')   keeperEl.classList.add('keeper-dive-left');
+  else if(where==='right') keeperEl.classList.add('keeper-dive-right');
+  else keeperEl.classList.add('keeper-block');
+}
+
+/* ============== TEAM SPRITE SWITCHER ============== */
+function applyTurnSprites(){
+  if (turn === "attack"){
+    strikerEl.src = ASSETS.kid.striker;
+    keeperEl.src  = ASSETS.opp.keeper;
+    strikerEl.alt = "Bé (tiền đạo)";
+    keeperEl.alt  = "Thủ môn đối phương";
+  } else {
+    strikerEl.src = ASSETS.opp.striker;
+    keeperEl.src  = ASSETS.kid.keeper;
+    strikerEl.alt = "Tiền đạo đối phương";
+    keeperEl.alt  = "Bé (thủ môn)";
+  }
+  strikerEl.onerror = ()=>{ strikerEl.src="bong-da-03.png"; };
+  keeperEl.onerror  = ()=>{ keeperEl.src ="bong-da-04.png"; };
+}
+
+/* ============== QUESTIONS ============== */
+function setStatus(){
+  statusEl.innerHTML = (turn==="attack")
+    ? 'Lượt sút của <b>bé</b>'
+    : 'Lượt sút của <b>đối phương</b> — Bé hãy <b>cản phá</b>!';
+}
+
+function newQuestion(){
+  feedbackEl.textContent = ""; feedbackEl.className = ""; endbar.style.display = "none";
+  setStatus(); resetSprites(); applyTurnSprites();
+
+  const bank = (mode==="letters") ? LETTERS : VANS;
+  answer = pick(bank);
+  const options = buildOptions(answer, bank, 4);
+
+  // promptEl.innerHTML = (mode==="letters")
+  //   ? `Hãy chọn chữ: <strong style="font-size:34px">${answer}</strong>`
+  //   : `Hãy chọn vần: <strong style="font-size:34px">${answer}</strong>`;
+
+  choicesEl.innerHTML = "";
+  options.forEach((opt,i)=>{
+    const btn = document.createElement("button");
+    btn.className = `opt c${(i%4)+1}`;
+    btn.textContent = opt;
+    btn.onclick = ()=> checkAnswer(opt);
+    choicesEl.appendChild(btn);
+  });
+
+  playSoundFor(answer);
+}
+
+function finishSeries(){
+  let msg;
+  if(youGoals > oppGoals){ msg="🏆 Bé thắng loạt sút!"; streak++; score++; }
+  else if(youGoals < oppGoals){ msg="Đối phương thắng. Bé cố lên nhé!"; streak = 0; }
+  else { msg="Hòa loạt sút!"; }
+
+  if(streak > bestStreak){ bestStreak = streak; localStorage.setItem("hv_penalty_png_best", String(bestStreak)); }
+  updateHUD();
+  feedbackEl.textContent = msg;
+  feedbackEl.className = (youGoals >= oppGoals) ? "ok" : "no";
+  endbar.style.display = "block";
+}
+
+function proceedOrFinish(){
+  if(youTaken === KICKS_PER_SIDE && oppTaken === KICKS_PER_SIDE){
+    setTimeout(finishSeries, 700);
+  }else{
+    setTimeout(()=>{ turn = (turn==="attack" ? "defense" : "attack"); newQuestion(); }, 700);
+  }
+}
+
+/* ============== SHOT SEQUENCE ============== */
+function playShot(correct){
+  strikerRun();
+  const dir = ['left','center','right'][Math.floor(Math.random()*3)];
+  ballTo(dir);
+  const kdir = chooseKeeperDir(turn, correct, dir);
+  setTimeout(()=> keeperTo(kdir), 140);
+}
+
+function handleAttack(correct){
+  playShot(correct);
+  setTimeout(()=>{
+    if(correct){ youGoals++; youTaken++; feedbackEl.textContent="Ghi bàn! Tuyệt vời!"; feedbackEl.className="ok"; }
+    else       { youTaken++;              feedbackEl.textContent="Bị cản phá rồi!";     feedbackEl.className="no"; }
+    updateBoard(); proceedOrFinish();
+  }, 650);
+}
+
+function handleDefense(correct){
+  playShot(correct);
+  setTimeout(()=>{
+    if(correct){ oppTaken++;              feedbackEl.textContent="Cản phá thành công!"; feedbackEl.className="ok"; }
+    else       { oppGoals++; oppTaken++;  feedbackEl.textContent="Đối phương ghi bàn!"; feedbackEl.className="no"; }
+    updateBoard(); proceedOrFinish();
+  }, 650);
+}
+
+function checkAnswer(opt){
+  const correct = (opt === answer);
+  if(correct){
+    streak++; score++;
+    if(streak > bestStreak){ bestStreak = streak; localStorage.setItem("hv_penalty_png_best", String(bestStreak)); }
+  }else{ streak = 0; }
+  updateHUD();
+  if(turn==="attack") handleAttack(correct); else handleDefense(correct);
+}
+
+function resetSeries(){
+  youGoals = 0; oppGoals = 0; youTaken = 0; oppTaken = 0; turn = "attack";
+  updateBoard(); updateHUD(); feedbackEl.textContent=""; feedbackEl.className=""; endbar.style.display="none";
+  newQuestion();
+}
+
+/* ============== CALIBRATION (press G) ============== */
+function copyGoalCalibration() {
+  const txt = JSON.stringify(goalRect);
+  navigator.clipboard?.writeText(txt).catch(()=>{});
+  alert("Copied goalRect:\n" + txt + "\nPaste this into GOAL_RECT_DEFAULT in your JS to make it permanent everywhere.");
+}
+function resetLocalCalibration(){ localStorage.removeItem(GOAL_KEY); location.reload(); }
+
+let calibrating = false, clickStep = 0;
+function renderGoalDebug(){
+  goalDebug.style.display = 'block';
+  goalDebug.style.left   = goalRect.x1 + '%';
+  goalDebug.style.top    = goalRect.y1 + '%';
+  goalDebug.style.width  = (goalRect.x2 - goalRect.x1) + '%';
+  goalDebug.style.height = (goalRect.y2 - goalRect.y1) + '%';
+}
+function hideGoalDebug(){ goalDebug.style.display = 'none'; }
+
+function pctFromEvent(e){
+  const r = pitch.getBoundingClientRect();
+  return {
+    x: ((e.clientX - r.left) / r.width)  * 100,
+    y: ((e.clientY - r.top)  / r.height) * 100
+  };
+}
+window.addEventListener('keydown', (e)=>{
+  if(e.key.toLowerCase() === 'g'){
+    calibrating = true; clickStep = 0;
+    feedbackEl.textContent = "Căn chỉnh: bấm vào GÓC TRÊN-TRÁI của khung thành.";
+    feedbackEl.className = "";
+    renderGoalDebug();
+  }
+});
+pitch.addEventListener('click', (e)=>{
+  if(!calibrating) return;
+  const p = pctFromEvent(e);
+  if(clickStep === 0){
+    goalRect.x1 = p.x; goalRect.y1 = p.y;
+    clickStep = 1;
+    feedbackEl.textContent = "Bây giờ bấm vào GÓC DƯỚI-PHẢI của khung thành.";
+    renderGoalDebug();
+  } else {
+    goalRect.x2 = p.x; goalRect.y2 = p.y;
+    if(goalRect.x2 < goalRect.x1){ [goalRect.x1, goalRect.x2] = [goalRect.x2, goalRect.x1]; }
+    if(goalRect.y2 < goalRect.y1){ [goalRect.y1, goalRect.y2] = [goalRect.y2, goalRect.y1]; }
+    localStorage.setItem(GOAL_KEY, JSON.stringify(goalRect));
+    TARGETS = targetsFromRect();
+    calibrating = false; clickStep = 0;
+    renderGoalDebug(); setTimeout(hideGoalDebug, 700);
+    resetSprites();
+    feedbackEl.textContent = "Đã lưu khung thành! (Nhấn G để chỉnh lại, hoặc chạy copyGoalCalibration() để xuất số cố định)";
+  }
+});
+
+/* ===================== INIT ===================== */
+function init(){
+  updateHUD(); updateBoard();
+  renderGoalDebug(); setTimeout(hideGoalDebug, 800);
+
+  playBtn.addEventListener("click", ()=> playSoundFor(answer));
+  modeSel.addEventListener("change", e=>{ mode=e.target.value; resetSeries(); });
+  restartBtn.addEventListener("click", resetSeries);
+  againBtn.addEventListener("click",  resetSeries);
+
+  document.addEventListener("click", ()=>{}, { once:true }); // mobile audio prime
+
+  resetSeries();
+}
+document.addEventListener("DOMContentLoaded", init);
+</script>
+
+</body>
+</html>

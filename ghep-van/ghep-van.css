@@ -1,0 +1,47 @@
+/* --- extra styles just for this mode --- */
+#game-name { background:#b4479c; color:#fff; }
+#question { position:relative; }
+#prompt {
+    font-size: 28px; line-height: 1.6; margin: 0.5em 0 0;
+}
+.drop-blank {
+    display:inline-block; min-width: 120px; padding: 8px 14px; margin: 0 6px;
+    border: 3px dashed #b4479c; border-radius: 12px; background: rgba(255,255,255,0.9);
+    font-size: 28px; text-align:center; color:#b4479c; font-weight:700;
+}
+.drop-blank.filled { border-style: solid; background:#fff; color:#333 }
+
+#choices { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:18px }
+.card { user-select:none; cursor:grab; }
+.syllable-card {
+    display:flex; align-items:center; justify-content:center;
+    min-width: 110px; padding: 16px 18px; font-size: 22px; font-weight:700;
+    border:0; border-radius:14px; color:#fff; box-shadow:0 3px 10px rgba(0,0,0,.2);
+    transition: transform .15s ease, box-shadow .15s ease, opacity .2s;
+}
+.syllable-card:active { cursor:grabbing; transform: scale(.98) }
+.syllable-card[data-color="1"]{ background:#FF3859 }
+.syllable-card[data-color="2"]{ background:#44A5DC }
+.syllable-card[data-color="3"]{ background:#FFC200; color:#603 }
+.syllable-card[data-color="4"]{ background:#65BF3B }
+
+.card.correct { outline:4px solid #2ecc71 }
+.card.wrong { animation: shake .25s linear 2 }
+@keyframes shake { 25%{transform:translateX(-4px)} 50%{transform:translateX(4px)} 75%{transform:translateX(-4px)} }
+
+#feedback { text-align:center; min-height: 28px; font-weight:700; margin-top:8px }
+#feedback.ok { color:#2ecc71 }  #feedback.no { color:#e74c3c }
+
+#play-sound { margin-top:8px }
+
+/* HUD small helpers */
+#hud { position:relative; z-index:1 }
+
+/* touch hint */
+#touch-hint { text-align:center; font-size:14px; color:#666; margin-top:6px }
+
+@media (max-width: 480px){
+    #prompt, .drop-blank{ font-size: 22px }
+    .drop-blank{ min-width: 100px }
+    .syllable-card{ min-width: 90px; font-size: 18px }
+}
