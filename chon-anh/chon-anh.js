@@ -2,14 +2,14 @@
   // Each item represents a word with an image and its target syllable (vần)
   // Provide your own images in static/img/words/ ...
   const POOL = [
-    { id:'chanh', word:'quả chanh', van:'anh', image:'static/img/words/chanh.png' },
-    { id:'cua',   word:'cua',       van:'ua',  image:'static/img/words/cua.png' },
-    { id:'com',   word:'cơm',       van:'o',   image:'static/img/words/com.png' },
-    { id:'bong',  word:'bóng',      van:'ong', image:'bong.jpg' },
-    { id:'may',   word:'mây',       van:'ay',  image:'static/img/words/may.png' },
-    { id:'yeu',   word:'yêu',       van:'yêu', image:'static/img/words/yeu.png' },
-    { id:'nhung', word:'nhung',     van:'ung', image:'static/img/words/nhung.png' },
-    { id:'dieu',  word:'diều',      van:'iêu', image:'static/img/words/dieu.png' }
+    { id:'chanh', word:'quả chanh', van:'quả chanh', image:'chanh.png' },
+    { id:'cua',   word:'cua',       van:'cua',  image:'cua.jpg' },
+    { id:'com',   word:'cơm',       van:'cơm',   image:'com.jpg' },
+    { id:'bong',  word:'bóng',      van:'bóng', image:'bong.jpg' },
+    { id:'may',   word:'mây',       van:'mây',  image:'may.jpg' },
+    { id:'cay',   word:'cây',       van:'cây', image:'cay.jpg' },
+    { id:'ca',    word:'cá',        van:'cá', image:'ca.jpg' },
+    { id:'dieu',  word:'diều',      van:'diều', image:'dieu.jpg' }
   ];
 
   // Optional recorded audio for whole words; TTS fallback if not provided
