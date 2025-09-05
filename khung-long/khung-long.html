@@ -312,7 +312,7 @@ function update(dt){
   if(paused || quizActive || gameOver) return;
 
   // ↓ gentler acceleration
-  speed += dt * 0.0005;   // was 0.0008
+  speed += dt * 0.0001;   // was 0.0008
 
   score += dt * 0.01 * speed;
 
