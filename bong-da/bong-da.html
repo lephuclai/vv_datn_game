@@ -12,7 +12,7 @@
   #game-name{ background:#b4479c; color:#fff }
   #question{ text-align:center }
   #controls{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0 }
-  #mode-select{ font-size:14px; padding:6px 10px; border-radius:8px; }
+  #mode-select, #nucleus-select{ font-size:14px; padding:6px 10px; border-radius:8px; } /* ← NEW: nucleus */
   #prompt{ font-size:28px; font-weight:800; margin:8px 0 0 }
   #choices{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px }
   .opt{ min-width:120px; padding:14px 18px; border-radius:12px; font-size:22px; font-weight:700; color:#fff;
@@ -27,26 +27,19 @@
   .scorebox{ background:#fff; border-radius:10px; padding:8px 14px; box-shadow:0 3px 8px rgba(0,0,0,.1) }
 
   /* ===== Pitch with background PNG that ALREADY contains the goal ===== */
-/* replace the old #pitch CSS block */
   #pitch{
     position: relative;
     margin: 14px auto 0;
     width: 100%;
     max-width: 900px;
-
-    /* keep the background image composition intact */
-    aspect-ratio: 880 / 487;   /* ← use YOUR bg image ratio here */
+    aspect-ratio: 880 / 487;
     height: auto;
-
     border-radius: 14px;
     box-shadow: 0 3px 12px rgba(0,0,0,.12);
     overflow: hidden;
-
     background: url("bong-da-01.png") center/cover no-repeat;
   }
 
-
-  /* Sprites are positioned by percentages so layout adapts to any bg */
   .sprite{
     position:absolute;
     left: var(--x,50%);  top: var(--y,50%);
@@ -56,36 +49,29 @@
     pointer-events:none;
   }
 
-/* Bigger sprites */
-#striker{ width: 15%; max-width:none; }
-#keeper { width: 20%; max-width:none; }
-#ball   { width: 7%;  max-width:none; }
+  #striker{ width: 15%; max-width:none; }
+  #keeper { width: 20%; max-width:none; }
+  #ball   { width: 7%;  max-width:none; }
 
-/* Optional: a hair faster motion for bigger sprites */
-#keeper{ transition: left .30s ease, top .30s ease, transform .30s ease; }
-#ball  { transition: left .55s ease, top .55s ease, transform .55s ease; }
-#striker{ transition: left .30s ease, top .30s ease, transform .30s ease, opacity .30s ease; }
+  #keeper{ transition: left .30s ease, top .30s ease, transform .30s ease; }
+  #ball  { transition: left .55s ease, top .55s ease, transform .55s ease; }
+  #striker{ transition: left .30s ease, top .30s ease, transform .30s ease, opacity .30s ease; }
 
-
-  /* Cute micro-animations */
   .striker-run{ --extra: translate(-50%, -50%) translate(3%, -6%) }
   .ball-spin{ --extra: translate(-50%, -50%) rotate(-18deg) }
   .keeper-dive-left { --extra: translate(-50%, -50%) rotate(10deg)  }
   .keeper-dive-right{ --extra: translate(-50%, -50%) rotate(-10deg) }
   .keeper-block     { --extra: translate(-50%, -50%) scale(1.06) }
 
-  /* Mobile tweak */
   @media (max-width:680px){
     #pitch{ height: min(64vh, 440px) }
   }
 
-    /* put this with your other styles */
   #goal-debug {
     position:absolute; border: 2px dashed rgba(255,255,255,.9);
     box-shadow: 0 0 0 9999px rgba(0,0,0,.08) inset;
     pointer-events:none; display:none; z-index: 2;
   }
-
 </style>
 </head>
 <body>
@@ -112,8 +98,6 @@
     <div>🏅 Kỷ lục: <strong id="best-streak">0</strong></div>
   </div>
 
-  <!-- Scoreboard -->
-
   <div id="game">
     <div id="question" class="box">
       <div id="controls">
@@ -122,6 +106,10 @@
           <option value="letters">Chế độ: Chữ cái</option>
           <option value="vans">Chế độ: Vần</option>
         </select>
+
+        <!-- NEW: Âm chính filter -->
+        <select id="nucleus-select" class="box" title="Lọc theo âm chính" style="display:none"></select>
+
         <button id="restart-btn" class="button btn-grey">🔁 Chơi mới</button>
       </div>
       <div id="status">Lượt sút của <b>bé</b></div>
@@ -131,18 +119,17 @@
       <div id="endbar"><button id="again-btn" class="button btn-grey">🔁 Chơi lại loạt sút</button></div>
     </div>
 
-  <div id="board">
-    <div class="scorebox">⚽ Bé: <span id="you-goals">0</span>/<span id="you-taken">0</span></div>
-    <div class="scorebox">🛡️ Đối phương: <span id="opp-goals">0</span>/<span id="opp-taken">0</span></div>
-  </div>
+    <div id="board">
+      <div class="scorebox">⚽ Bé: <span id="you-goals">0</span>/<span id="you-taken">0</span></div>
+      <div class="scorebox">🛡️ Đối phương: <span id="opp-goals">0</span>/<span id="opp-taken">0</span></div>
+    </div>
 
     <!-- PITCH -->
     <div id="pitch" class="box">
-      <!-- Replace PNGs below with your artwork -->
       <div id="goal-debug"></div>
       <img id="keeper"  class="sprite" src="bong-da-04.png"   alt="keeper">
-      <img id="ball"    class="sprite" src="bong-da-02.png"     alt="ball">
-      <img id="striker" class="sprite" src="bong-da-03.png"  alt="striker">
+      <img id="ball"    class="sprite" src="bong-da-02.png"   alt="ball">
+      <img id="striker" class="sprite" src="bong-da-03.png"   alt="striker">
     </div>
   </div>
 </main>
@@ -150,7 +137,7 @@
 <script>
 /* ===================== DATA ===================== */
 const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
-const VANS = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"];
+const VANS = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"]; // seed list
 
 // Optional audio per token; TTS fallback if not provided.
 const audioMap = {};
@@ -166,7 +153,7 @@ const START = {
 };
 
 let mode = "letters";         // "letters" | "vans"
-let turn = "attack";          // "attack" (bé sút) | "defense" (bé bắt)
+let turn = "attack";          // "attack" | "defense"
 let youGoals = 0, oppGoals = 0;
 let youTaken = 0, oppTaken = 0;
 
@@ -199,6 +186,7 @@ const endbar     = document.getElementById("endbar");
 
 const playBtn    = document.getElementById("play-sound");
 const modeSel    = document.getElementById("mode-select");
+const nucleusSel = document.getElementById("nucleus-select"); // ← NEW
 const restartBtn = document.getElementById("restart-btn");
 const againBtn   = document.getElementById("again-btn");
 
@@ -240,12 +228,42 @@ function playSoundFor(token){
 }
 
 /* =============== HELPERS =============== */
-const pick = arr => arr[Math.floor(Math.random()*arr.length)];
-function buildOptions(answer, bank, n=4){
-  const set = new Set([answer]);
-  while(set.size < n) set.add(pick(bank));
-  return [...set].sort(()=>Math.random()-0.5);
+function pick(arr){
+  if (!arr || arr.length === 0) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
 }
+
+// REPLACE the old buildOptions()
+function buildOptions(answer, bank, n = 4){
+  // If the filtered bank is tiny, extend the pool with all vần
+  const pool = Array.from(new Set([...(bank || []), ...(vansAll || [])]));
+  // We won't try to generate more options than the pool can provide
+  const desired = Math.min(n, Math.max(2, pool.length));
+
+  const set = new Set();
+  if (answer != null) set.add(answer);
+
+  let guard = 0;
+  while (set.size < desired && guard < 1000){
+    const cand = pick(pool);
+    if (cand != null) set.add(cand);
+    guard++;
+  }
+
+  const opts = [...set];
+
+  // If for some reason we still have fewer than 2 options, fall back to letters
+  if (opts.length < 2 && Array.isArray(LETTERS) && LETTERS.length){
+    while (opts.length < Math.min(2, LETTERS.length) && guard < 1200){
+      const cand = pick(LETTERS);
+      if (cand != null && !opts.includes(cand)) opts.push(cand);
+      guard++;
+    }
+  }
+
+  return opts.sort(() => Math.random() - 0.5);
+}
+
 
 /* ========== CALIBRATION / POSITIONING ========== */
 const GOAL_KEY = "hv_penalty_goal_rect";
@@ -342,6 +360,79 @@ function applyTurnSprites(){
   keeperEl.onerror  = ()=>{ keeperEl.src ="bong-da-04.png"; };
 }
 
+/* ===================== ÂM CHÍNH FILTER (NEW) ===================== */
+// 1) Detect nucleus (âm chính): longer clusters first
+const NUCLEI_ORDERED = [
+  "iêu","yêu","ươu","uôi","ươi",
+  "iêng","yêng","ương","ươm","ươn","ươt","ươp","ươu",
+  "iêm","iên","yên","uôn","uông","uât","uân","uê",
+  "oa","oe","uy","uô","iê","yê","ưa","ua",
+  "ă","â","ê","ô","ơ","ư",
+  "a","e","i","o","u","y"
+];
+function detectNucleus(van){
+  const v = van.normalize('NFC');
+  for(const nuc of NUCLEI_ORDERED){ if(v.includes(nuc)) return nuc; }
+  const m = v.match(/[aăâeêioôơuưy]/u);
+  return m ? m[0] : "(khác)";
+}
+
+// 2) Group vần by raw nucleus
+function buildNucleusMap(vans){
+  const map = {};
+  vans.forEach(v=>{
+    const key = detectNucleus(v);
+    (map[key] ||= []).push(v);
+  });
+  for(const k in map){ map[k].sort((a,b)=>a.localeCompare(b)); }
+  return map;
+}
+
+// 3) Collapse raw keys to user-friendly labels
+function collapseNucleusKey(key){
+  if(["iê","ia","yê"].some(s=>key.includes(s))) return "ia/iê";
+  if(["uô","ua"].some(s=>key.includes(s))) return "ua/uô";
+  if(["ươ","ưa"].some(s=>key.includes(s))) return "ưa/ươ";
+  return key;
+}
+
+let vansAll = Array.from(new Set(VANS.map(v=>v.normalize('NFC'))));
+let nucleusMap = buildNucleusMap(vansAll);
+let activeNucleusLabel = "all";
+
+function getActiveVanBank(){
+  if(activeNucleusLabel === "all") return vansAll;
+  const wanted = [];
+  for(const rawKey in nucleusMap){
+    if(collapseNucleusKey(rawKey) === activeNucleusLabel){
+      wanted.push(...nucleusMap[rawKey]);
+    }
+  }
+  return wanted.length ? Array.from(new Set(wanted)) : vansAll;
+}
+
+function refreshNucleusDropdown(){
+  const groups = {};
+  for(const rawKey in nucleusMap){
+    const label = collapseNucleusKey(rawKey);
+    (groups[label] ||= []).push(rawKey);
+  }
+  const order = ["all","a","ă","â","e","ê","i","ia/iê","o","ô","ơ","u","ua/uô","ư","ưa/ươ","y"];
+
+  nucleusSel.innerHTML = "";
+  const mk = (val, txt)=>{ const o=document.createElement("option"); o.value=val; o.textContent=txt; return o; };
+  nucleusSel.appendChild(mk("all","Âm chính: Tất cả"));
+
+  const labels = Array.from(new Set(order.concat(Object.keys(groups))));
+  labels.forEach(lbl=>{
+    if(lbl==="all") return;
+    if(groups[lbl]) nucleusSel.appendChild(mk(lbl, `Âm chính: ${lbl}`));
+  });
+
+  nucleusSel.value = activeNucleusLabel;
+  nucleusSel.style.display = (mode === "vans") ? "" : "none";
+}
+
 /* ============== QUESTIONS ============== */
 function setStatus(){
   statusEl.innerHTML = (turn==="attack")
@@ -349,17 +440,23 @@ function setStatus(){
     : 'Lượt sút của <b>đối phương</b> — Bé hãy <b>cản phá</b>!';
 }
 
+// REPLACE the body of newQuestion() with this safer version
 function newQuestion(){
   feedbackEl.textContent = ""; feedbackEl.className = ""; endbar.style.display = "none";
   setStatus(); resetSprites(); applyTurnSprites();
 
-  const bank = (mode==="letters") ? LETTERS : VANS;
-  answer = pick(bank);
-  const options = buildOptions(answer, bank, 4);
+  const bankRaw = (mode === "letters") ? LETTERS : getActiveVanBank();
+  const bank = (bankRaw && bankRaw.length) ? bankRaw : vansAll;
 
-  // promptEl.innerHTML = (mode==="letters")
-  //   ? `Hãy chọn chữ: <strong style="font-size:34px">${answer}</strong>`
-  //   : `Hãy chọn vần: <strong style="font-size:34px">${answer}</strong>`;
+  answer = pick(bank);
+  if (answer == null){
+    // Hard fallback: no data to ask — show a gentle message
+    promptEl.textContent = "Chưa có dữ liệu cho lựa chọn này. Hãy chọn Âm chính khác hoặc chế độ khác.";
+    choicesEl.innerHTML = "";
+    return;
+  }
+
+  const options = buildOptions(answer, bank, 4);
 
   choicesEl.innerHTML = "";
   options.forEach((opt,i)=>{
@@ -370,8 +467,10 @@ function newQuestion(){
     choicesEl.appendChild(btn);
   });
 
-  playSoundFor(answer);
+  // Guard against undefined answer in audio
+  if (answer) playSoundFor(answer);
 }
+
 
 function finishSeries(){
   let msg;
@@ -497,12 +596,21 @@ function init(){
   renderGoalDebug(); setTimeout(hideGoalDebug, 800);
 
   playBtn.addEventListener("click", ()=> playSoundFor(answer));
-  modeSel.addEventListener("change", e=>{ mode=e.target.value; resetSeries(); });
+  modeSel.addEventListener("change", e=>{
+    mode = e.target.value;
+    refreshNucleusDropdown();   // ← show/hide + repopulate if needed
+    resetSeries();
+  });
+  nucleusSel.addEventListener("change", e=>{
+    activeNucleusLabel = e.target.value;
+    resetSeries();
+  });
   restartBtn.addEventListener("click", resetSeries);
   againBtn.addEventListener("click",  resetSeries);
 
   document.addEventListener("click", ()=>{}, { once:true }); // mobile audio prime
 
+  refreshNucleusDropdown();     // ← build dropdown on load
   resetSeries();
 }
 document.addEventListener("DOMContentLoaded", init);
