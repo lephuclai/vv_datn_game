@@ -5,16 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kéo co – Chữ cái & Vần</title>
 
-  <!-- Reuse your project styles -->
   <link rel="stylesheet" href="base.css">
   <link rel="stylesheet" href="game.css">
 
   <style>
     #game-name{ background:#b4479c; color:#fff }
-
     #question{ text-align:center }
     #controls{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:8px 0 }
-    #mode-select{ font-size:14px; padding:6px 10px; border-radius:8px }
+    #mode-select, #nucleus-select{ font-size:14px; padding:6px 10px; border-radius:8px }
 
     #prompt{ font-size:28px; font-weight:800; margin:8px 0 0; text-align:center }
     #choices{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:12px }
@@ -30,79 +28,35 @@
     #feedback{ text-align:center; font-weight:700; min-height:26px; margin-top:6px }
     #feedback.ok{ color:#2ecc71 } #feedback.no{ color:#e74c3c }
 
-    /* Arena */
-    /* #arena{
-      position:relative; margin:14px auto 0; max-width:1000px; height:280px;
-      border-radius:14px; box-shadow:0 3px 12px rgba(0,0,0,.12);
-      background: linear-gradient(#c2f0ff,#e6fff3 40%, #b9f3a2 40%, #a7ec8c 100%);
-      background-image: url("keo-co-background-01.png");
-      overflow:hidden;
-    } */
-
     #arena {
-        position: relative;
-        margin: 14px auto 0;
-        max-width: 1000px;
-        height: 280px;
-        border-radius: 14px;
-        box-shadow: 0 3px 12px rgba(0,0,0,.12);
-
-        background-image: url("keo-co-background-01.png");
-        background-repeat: no-repeat;
-        background-position: center center;
-        background-size: cover;   /* makes the image scale to fill */
-
-        overflow: hidden;
+      position: relative; margin: 14px auto 0; max-width: 1000px; height: 280px;
+      border-radius: 14px; box-shadow: 0 3px 12px rgba(0,0,0,.12);
+      background-image: url("keo-co-background-01.png");
+      background-repeat: no-repeat; background-position: center center; background-size: cover;
+      overflow: hidden;
     }
+    #center-flag{ position:absolute; left:50%; top:calc(54% - 26px); transform:translateX(-50%);
+      width:16px; height:52px; background:#ff5252; border-radius:0 10px 2px 2px; box-shadow:0 2px 4px rgba(0,0,0,.2) }
 
-    /* Ground line (rope baseline) */
-    /* #rope-line{
-      position:absolute; left:0; right:0; top:54%;
-      height:6px; background:#bd8b3b; box-shadow:0 2px 0 rgba(0,0,0,.15) inset;
-    } */
-    /* Center flag on rope (won’t move) */
-    #center-flag{
-      position:absolute; left:50%; top:calc(54% - 26px);
-      transform:translateX(-50%);
-      width:16px; height:52px; background:#ff5252; border-radius:0 10px 2px 2px;
-      box-shadow:0 2px 4px rgba(0,0,0,.2);
-    }
+    .marker{ position:absolute; top:18px; font-weight:800; color:#606060; background:#ffffffcc;
+      padding:4px 8px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.08) }
+    .marker.left{ left:10px } .marker.right{ right:10px }
 
-    /* Boundaries */
-    .marker{
-      position:absolute; top:18px; font-weight:800; color:#606060; background:#ffffffcc;
-      padding:4px 8px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.08)
-    }
-    .marker.left{ left:10px }
-    .marker.right{ right:10px }
-
-    /* Team image wrapper that moves left/right */
     #teams-wrap{
-      position:absolute; left:50%; top:16%;
-      transform: translateX(-50%);   /* baseline center */
-      transition: transform .35s ease; /* smooth slide each answer */
-      display:grid; place-items:center; width:80%;
-      pointer-events:none;
+      position:absolute; left:50%; top:16%; transform: translateX(-50%);
+      transition: transform .35s ease; display:grid; place-items:center; width:80%; pointer-events:none;
     }
-    #teams-img{
-      max-width:100%; height:auto; width: 640px; /* you can change this based on your PNG */
-      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
-    }
+    #teams-img{ max-width:100%; height:auto; width: 640px; filter: drop-shadow(0 10px 12px rgba(0,0,0,.18)); }
 
-    /* Win/Lose bar */
     #endbar{ display:none; text-align:center; margin-top:10px }
     #endbar button{ cursor:pointer }
 
-    @media (max-width:900px){
-      #teams-img{ width: 520px }
-    }
+    @media (max-width:900px){ #teams-img{ width: 520px } }
     @media (max-width:700px){
-      #teams-img{ width: 430px }
-      #arena{ height:250px }
+      #teams-img{ width: 430px } #arena{ height:250px }
     }
     @media (max-width:520px){
-      #teams-img{ width: 360px }
-      #arena{ height:230px }
+      #teams-img{ width: 360px } #arena{ height:230px }
     }
   </style>
 </head>
@@ -123,7 +77,6 @@
     <div class="text"><h1 id="game-name">Kéo co – Chữ cái & Vần</h1></div>
   </div>
 
-  <!-- HUD -->
   <div id="hud" class="box" style="display:flex; gap:1rem; align-items:center; padding:8px 14px">
     <div>🏆 Điểm: <strong id="score">0</strong></div>
     <div>⭐ Liên tiếp: <strong id="streak">0</strong></div>
@@ -131,28 +84,27 @@
   </div>
 
   <div id="game">
-    <!-- ARENA -->
     <div id="arena" class="box">
       <div class="marker left">Đối phương</div>
       <div class="marker right">Đội bé</div>
-
-      <!-- <div id="rope-line"></div> -->
-      <!-- <div id="center-flag"></div> -->
-
-      <div id="teams-wrap">
-        <!-- Placeholder image: replace with your PNG -->
-        <img id="teams-img" src="keo-co-01.png" alt="Tug of war">
-      </div>
+      <div id="teams-wrap"><img id="teams-img" src="keo-co-01.png" alt="Tug of war"></div>
     </div>
 
-        <div id="question" class="box">
+    <div id="question" class="box">
       <h2>Bé trả lời đúng để kéo dây về phía đội mình nhé!</h2>
       <div id="controls">
         <button id="play-sound" class="button btn-grey">🔊 Nghe lại</button>
+
         <select id="mode-select" class="box">
           <option value="letters">Chế độ: Chữ cái</option>
           <option value="vans">Chế độ: Vần</option>
         </select>
+
+        <!-- NEW: Âm chính filter (visible only in Vần mode) -->
+        <select id="nucleus-select" class="box" title="Lọc theo âm chính" style="display:none">
+          <!-- options injected by JS -->
+        </select>
+
         <button id="restart-btn" class="button btn-grey">🔁 Chơi lại</button>
       </div>
 
@@ -170,33 +122,98 @@
 <script>
   /* ================= Data ================= */
   const LETTERS = ["a","ă","â","b","c","d","đ","e","ê","g","h","i","k","l","m","n","o","ô","ơ","p","q","r","s","t","u","ư","v","x","y"];
-  const VANS = ["oa","oe","oi","ua","ue","ui","anh","ach","ang","ong","ung","âu","ây","êu","iêu","yêu","ôi","ơi"];
+
+  // 👉 Replace VAN_DATA with the full list later (see note below).
+  const VAN_DATA = [
+    // a / ă / â group (examples)
+    "a","ac","ach","ai","am","an","ang","anh","ao","ap","at","au","ay",
+    "ăc","ăch","ăm","ăn","ăng","ăp","ăt",
+    "âc","âm","ân","âng","âp","ât","âu","ây",
+    // e / ê
+    "e","em","en","eng","eo","ep","et","em","en","eo","ep","et","eng",
+    "ê","ên","êng","êu","ênh","êt","êm",
+    // i / y (include y as vowel nucleus when present)
+    "i","ia","im","in","inh","ip","it","iêm","iên","iêng","iêu","yêu","yên","yêng",
+    // o / ô / ơ
+    "o","oa","oăc","oach","oăn","oang","oan","oat","oay","oanh","oe","oem","oen","oeng","oi","om","on","ong","op","ot","oi","om","on","ong","op","ot",
+    "ô","ôm","ôn","ông","ôp","ôt","ôi",
+    "ơ","ơi","ơm","ơn","ơp","ơt","ư","ươm","ươn","ương","ươp","ươt","ươu",
+    // u / ư
+    "u","ua","uâ","uân","uâng","uât","uê","uên","uêng","uôi","uôm","uông","uốt","uy","uya","uyên","uyêt","uyêc","uyêch", "uyi","uyt",
+    "ung","um","un","up","ut","ui",
+    "ư","ưa","ươi","ươm","ươn","ương","ươp","ươt","ươu","ưng","ưm","ưn","ưt","ưp"
+  ];
 
   // Optional: token -> audio file. Fallback to TTS.
-  const audioMap = {
-    // "ê": "static/audio/letters/e-circumflex.mp3",
-    // "anh": "static/audio/anh.mp3",
-  };
+  const audioMap = { /* "anh": "static/audio/anh.mp3" */ };
+
+  /* =============== Âm chính detection =============== */
+  // Precedence: longer vowel clusters first so "iê" wins over just "i", etc.
+  const NUCLEI_ORDERED = [
+    "iêu","yêu","ươu","uôi","ươi",
+    "iêng","yêng","ương","ươm","ươn","ươt","ươp","ươu",
+    "iêm","iên","yên","uơn","uôm","uôn","uông","uât","uân","uê",
+    "oa","oe","uy","uô","iê","yê","ưa","ua",
+    "ă","â","ê","ô","ơ","ư",
+    "a","e","i","o","u","y"
+  ];
+  const NUCLEI_SIMPLE = ["a","ă","â","e","ê","i","o","ô","ơ","u","ư","y","ia/iê","ua/uô","ưa/ươ"];
+
+  function detectNucleus(van){
+    const v = van.normalize('NFC');
+    for(const nuc of NUCLEI_ORDERED){
+      if(v.includes(nuc)) return nuc;
+    }
+    // Fallback: first Vietnamese vowel encountered
+    const m = v.match(/[aăâeêioôơuưy]/u);
+    return m ? m[0] : "(khác)";
+  }
+
+  // Build a map: nucleus -> [vần...]
+  function buildNucleusMap(vans){
+    const map = {};
+    vans.forEach(v=>{
+      const key = detectNucleus(v);
+      if(!map[key]) map[key] = [];
+      map[key].push(v);
+    });
+    // sort each list for stable UI
+    for(const k in map){ map[k].sort((a,b)=>a.localeCompare(b)); }
+    return map;
+  }
+
+  // Friendly grouping for the dropdown
+  function collapseNucleusKey(key){
+    // Merge common diphthong spellings into one label for user:
+    if(["iê","ia","yê"].some(s=>key.includes(s))) return "ia/iê";
+    if(["uô","ua"].some(s=>key.includes(s))) return "ua/uô";
+    if(["ươ","ưa"].some(s=>key.includes(s))) return "ưa/ươ";
+    return key;
+  }
 
   /* =============== Config =============== */
-  const STEPS_TO_WIN = 8;             // distance to the right edge (and to the left edge)
-  const MOVE_PIXELS_AT_FULL = 320;    // total shift when |pos| == STEPS_TO_WIN (auto-rescaled on resize)
+  const STEPS_TO_WIN = 8;
+  const MOVE_PIXELS_AT_FULL = 320;
 
   /* =============== State =============== */
   let mode = "letters";
   let answer = "";
-  let pos = 0;                        // -STEPS_TO_WIN .. +STEPS_TO_WIN
+  let pos = 0;
   let score = 0, streak = 0, bestStreak = Number(localStorage.getItem("hv_tug_best")||0);
+
+  let vansAll = Array.from(new Set(VAN_DATA.map(v => v.normalize('NFC')))); // unique
+  let nucleusMap = buildNucleusMap(vansAll);
+  let activeNucleusLabel = "all"; // "all" or a collapsed label like "a", "ia/iê", ...
 
   const promptEl   = document.getElementById("prompt");
   const choicesEl  = document.getElementById("choices");
   const feedbackEl = document.getElementById("feedback");
   const playBtn    = document.getElementById("play-sound");
   const modeSel    = document.getElementById("mode-select");
+  const nucleusSel = document.getElementById("nucleus-select");
   const restartBtn = document.getElementById("restart-btn");
   const againBtn   = document.getElementById("again-btn");
   const endbar     = document.getElementById("endbar");
-
   const teamsWrap  = document.getElementById("teams-wrap");
   const arena      = document.getElementById("arena");
 
@@ -224,9 +241,7 @@
   function shuffled(arr){ return [...arr].sort(()=>Math.random()-0.5); }
 
   function computeMaxShiftPx(){
-    // keep team image inside arena nicely
     const wrapWidth = arena.clientWidth;
-    // leave ~10% margin each side; clamp with MOVE_PIXELS_AT_FULL as upper bound
     return Math.min(MOVE_PIXELS_AT_FULL, Math.max(120, (wrapWidth * 0.35)));
   }
 
@@ -252,16 +267,33 @@
     return false;
   }
 
-  /* =============== Questions =============== */
+  /* =============== Question bank (with filter) =============== */
+  function getActiveVanBank(){
+    if(activeNucleusLabel === "all") return vansAll;
+
+    // Gather keys in nucleusMap that collapse to the same label
+    const wanted = [];
+    for(const rawKey in nucleusMap){
+      if(collapseNucleusKey(rawKey) === activeNucleusLabel){
+        wanted.push(...nucleusMap[rawKey]);
+      }
+    }
+    // unique
+    return Array.from(new Set(wanted));
+  }
+
   function newQuestion(){
     endbar.style.display = "none";
     feedbackEl.textContent = ""; feedbackEl.className = "";
 
-    const bank = (mode === "letters") ? LETTERS : VANS;
-    answer = pick(bank);
+    const bank = (mode === "letters") ? LETTERS : getActiveVanBank();
+    // Safety: if filter yields no items, fall back to all vans
+    const usable = (bank.length > 0) ? bank : vansAll;
+
+    answer = pick(usable);
 
     const opts = new Set([answer]);
-    while(opts.size < 4) opts.add(pick(bank));
+    while(opts.size < 4) opts.add(pick(usable));
     const options = shuffled([...opts]);
 
     choicesEl.innerHTML = "";
@@ -296,8 +328,33 @@
     if(!checkFinish()) setTimeout(newQuestion, 500);
   }
 
+  /* =============== UI: nucleus dropdown =============== */
+  function refreshNucleusDropdown(){
+    const groups = {};
+    // group raw keys by collapsed label
+    for(const rawKey in nucleusMap){
+      const label = collapseNucleusKey(rawKey);
+      (groups[label] ||= []).push(rawKey);
+    }
+
+    const order = ["all","a","ă","â","e","ê","i","ia/iê","o","ô","ơ","u","ua/uô","ư","ưa/ươ","y"];
+    nucleusSel.innerHTML = "";
+    const mk = (value, text)=>{ const o=document.createElement("option"); o.value=value; o.textContent=text; return o; };
+    nucleusSel.appendChild(mk("all","Âm chính: Tất cả"));
+
+    // add existing labels in a stable order, then any extras
+    const labels = Array.from(new Set(order.concat(Object.keys(groups))));
+    labels.forEach(lbl=>{
+      if(lbl==="all") return;
+      if(groups[lbl]) nucleusSel.appendChild(mk(lbl, `Âm chính: ${lbl}`));
+    });
+
+    nucleusSel.value = activeNucleusLabel;
+    nucleusSel.style.display = (mode === "vans") ? "" : "none";
+  }
+
   /* =============== Init / Reset =============== */
-  function resetGame(keepMode=true){
+  function resetGame(){
     pos = 0; updateTeamsPosition();
     endbar.style.display = "none";
     newQuestion();
@@ -306,16 +363,21 @@
   function init(){
     updateHUD();
     playBtn.addEventListener("click", ()=> playSoundFor(answer));
-    modeSel.addEventListener("change", e=>{ mode = e.target.value; resetGame(true); });
-    restartBtn.addEventListener("click", ()=> resetGame(true));
-    againBtn.addEventListener("click", ()=> resetGame(true));
+    modeSel.addEventListener("change", e=>{
+      mode = e.target.value;
+      refreshNucleusDropdown();
+      resetGame();
+    });
+    nucleusSel.addEventListener("change", e=>{
+      activeNucleusLabel = e.target.value;
+      resetGame();
+    });
+    restartBtn.addEventListener("click", ()=> resetGame());
+    againBtn.addEventListener("click", ()=> resetGame());
     window.addEventListener("resize", updateTeamsPosition);
 
-    // Prime audio on first tap (mobile)
-    const prime = ()=>{ document.removeEventListener("click", prime); };
-    document.addEventListener("click", prime, { once:true });
-
-    resetGame(true);
+    refreshNucleusDropdown();
+    resetGame();
   }
   window.addEventListener("DOMContentLoaded", init);
 </script>
